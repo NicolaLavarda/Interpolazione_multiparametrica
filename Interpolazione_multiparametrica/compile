@@ -1,0 +1,2 @@
+rm -f main
+c++ -o main main.cpp src/*.cpp -Iinclude

@@ -1,0 +1,19 @@
+1	
+2	
+3	
+4	
+5	
+6	
+7	
+8	
+9	
+10	
+11	
+12	miglioramenti etichette plot
+13	'AutomaticResearch' trasformata in classe e creato 'ThreadPool' come predisposizione per utilizzo di multi-thread
+14	versione stabile e thread-safe nella gestione di un pool di multi-thread per i livelli in bisezione. 'AutomaticResearch' migliora in modo più flessibile gli ultimi n=5 migliori set di parametri trovati nei cicli for annidati della relativa funzione. Rimosso completamente metodo della retta ('linear_mode') e tutta la logica di continuazione ed uscita dei cicli di 'covering'
+15	ATTENZIONE funzione covering corretta (non spaziava giusto in tutte le versioni precedenti... in raltà analizzava dei "doppioni" quindi semplicemente lavorava per più tempo senza alcuna utilità), 'AutomaticResearch' ripulita e sistemata, aggiunto a 'Interpolator' le funzioni per normalizzare i parametri affinché abbiano lo stesso ordine di grandezza (vengono effettivamente normalizzati dentro a 'Results'), ridefinito e rivisto da zero tutto l'accesso alle istanze 'Interpolator' lungo il programma (ora accedono quasi tutte le classi/funzioni ad 'Interpolator' tramite un puntatore che dev'essere deallocato [non è possibile usare 'unique_ptr' perché richiederebbe il costruttore public], utilizzano l'istanza statica invece solo 'Results' e solo momentaneamente per normalizzare i parametri, oltre a classi/funzioni che sono all'inizio o alla fine del programma [es. 'input', 'plot'] dove non viene modificato la funzione interpolante, simble_table, ecc.)
+16	creazione e completamento della classe 'BranchingCover' (miglioramento incredibile)
+17	aggiunto in 'BranchingCover' kill del ramo se sono parametri già analizzati da un ramo precedente. Riconfigurazione, mimiglioramenti in 'input' (immagazzinamento dati, parametri, funzione interpolante, ecc in due struct Data e Interpolation).
+18	in 'ChiSquareMinimizer' diminuisco i passi di 'covering' proporzionalmente a quanto sono migliorati i parametri rispetto al ciclo precedente. Errore fatale scoperto (e risolto) nella definizione di h nel calcolo del gradiente in 'gradient_descent_algorithm'.
+19	nel ciclo for principale itero BrachingCover e non più Covering
