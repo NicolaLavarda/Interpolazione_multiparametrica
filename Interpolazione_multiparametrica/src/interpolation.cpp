@@ -27,9 +27,8 @@ extern int cicle_programms;                                                //num
 void ricerca_auto(vector<double>& par, vector<double>& par_auto, int n) {
     if (n >= par.size()) return;
     static double chi_min_auto = 1e10;
-    static double min = -1e10;
-    static double max = 1e10;
-    static double min_ordine = 1;
+    double min = -1e10;
+    double max = 1e10;
     double a = min;
     while (a <= max)
     {
@@ -42,105 +41,28 @@ void ricerca_auto(vector<double>& par, vector<double>& par_auto, int n) {
             sum_chi += pow((y[i] - funzione_interpolante(x, par_auto, i)) / sigma_y[i], 2);
         }
 
-        //Debug
-        if (false) {
-            for (int k = 0; k < par.size(); k++)
-            {
-                cout << par_auto[k] << "\t";
-            }
-            cout << endl;
-            cout << sum_chi << endl;
+        /*
+        for (int k = 0; k < par.size(); k++)
+        {
+            cout << par_auto[k] << "\t";
         }
-
+        cout << endl;
+        cout << sum_chi << endl;
+        */
 
         if (sum_chi < chi_min_auto)
         {
             par = par_auto;
             chi_min_auto = sum_chi;
-            /*
-            if (min_ordine > 1e-5 && (a >= -min_ordine - 1e-9 && a <= -min_ordine + 1e-9))
-                min_ordine /= 10;
-            */
         }
 
         // Devo andare da -1e9 a 1e9 togliendo [-1e-2;+1e-2]
         (a < 0) ? a /= 10 : a *= 10;
-        if (a >= -min_ordine / 10 - 1e-9 && a <= -min_ordine / 10 + 1e-9)
-            a = min_ordine;
+        if (a >= -0.001 - 1e-9 && a <= -0.001 + 1e-9)
+            a = 0.01;
     }
 }
 
-
-void ricerca_auto(vector<double>& par, vector<double>& par_auto, vector<double>& par_def, int n) {
-    //mettere par_auto=par; prima della chiamata della funzione
-    //cout << "-> n = " << n << endl;
-    if (n >= par.size() || (par_auto[n] != 0 && par[n] == 0)) {
-        //cout << "-> return" << endl;
-        return;
-    }
-    static double chi_min_auto = 1e10;
-    static double min = -1e10;
-    static double max = 1e10;
-    static double min_ordine = 1;
-    double a = min;
-    while (a <= max)
-    {
-        //cout << "a = " << a << "e il max = " << max << endl;
-        //if (a <= max) cout << "ma che cazz..." << endl;
-        int k = 0;
-        if (n < par.size() && par[n] == 0) {
-            par_auto[n] = a;
-            //n++;
-            //cout << "messo pari ad a e con n = " << n << endl;
-        }
-        else {
-            while (k + n < par.size() && par[k + n] != 0)
-                k++;
-            //cout << "Sono a n = " << n << " e k = " << k << endl;
-            k--;
-        }
-
-        ricerca_auto(par, par_auto, par_def, n+1+k);
-
-        //Qui sono arrivato all'ultimo parametro e ora comincio a tornare indietro a migliorare quelli precedenti (se sono parametri automatici "a")
-
-        if (par[n] != 0) return;    //Tornando indietro se ne trovo uno che non è di quelli automatici "a" procedo con quello dopo
-
-        double sum_chi = 0;
-        for (int i = 0; i < x.size(); i++)
-        {
-            sum_chi += pow((y[i] - funzione_interpolante(x, par_auto, i)) / sigma_y[i], 2);
-        }
-
-        //Debug
-        if (false) {
-            for (int k = 0; k < par.size(); k++)
-            {
-                cout << par_auto[k] << "\t";
-            }
-            cout << endl;
-            cout << sum_chi << endl;
-        }
-
-
-        if (sum_chi < chi_min_auto)
-        {
-            par_def = par_auto; //cout << " --> yep" << endl;
-            chi_min_auto = sum_chi;
-            /*
-            if (min_ordine > 1e-5 && (a >= -min_ordine - 1e-9 && a <= -min_ordine + 1e-9))
-                min_ordine /= 10;
-            */
-        }
-
-        // Devo andare da -1e9 a 1e9 togliendo [-1e-2;+1e-2]
-        (a < 0) ? a /= 10 : a *= 10;
-        if (a >= -min_ordine / 10 - 1e-9 && a <= -min_ordine / 10 + 1e-9)
-            a = min_ordine;
-        //cout << "a = " << a << endl;
-    }
-    par[n] = 0;
-}
 
 
 void algoritmo_bisezione(vector<double> par, vector<double>& par_def, const vector<double> passo, int n) {
@@ -152,6 +74,7 @@ void algoritmo_bisezione(vector<double> par, vector<double>& par_def, const vect
     //Range con vettore passo
     double range_min_par_n = par[n] - passo[n] / 2;
     double range_max_par_n = par[n] + passo[n] / 2;
+    
 
     double precisione_bisezione = 0.00001;
 
@@ -224,11 +147,13 @@ void algoritmo_bisezione(vector<double> par, vector<double>& par_def, const vect
         controllo_par_n++;
         if (controllo_par_n > 100)
         {
-            //static int controllo_multiplo = 0;
-            //controllo_multiplo++;
-            //if (controllo_multiplo > 10) exit(EXIT_FAILURE);
-            cout << endl << "ERRORE bisezione iniziale (par " << n << ")";
-            cout << endl; //exit(EXIT_FAILURE);
+            static int controllo_multiplo = 0;
+            controllo_multiplo++;
+            if (controllo_multiplo > 10) exit(EXIT_FAILURE);
+            cout << endl << "-------------------------------------";
+            cout << endl << "| ERRORE bisezione iniziale (par n) |";
+            cout << endl << "-------------------------------------";
+            cout << endl << endl; //exit(EXIT_FAILURE);
             return;
             break;
         }
@@ -507,18 +432,10 @@ void risultato(double valore, double errore, string nome, bool arrotondamento) {
         if (errore >= 1) { digits_val = 0; }
         cout << nome << " = ( " << fixed << setprecision(digits_val) << valore << " +- " << setprecision(digits_val) << errore << " )";
     }
-
-    double err_percentuale = fabs(errore / valore) * 100;    
-    if (!arrotondamento)
-    {
-        cout << setw(12) << "\t" << "e_r = " << fixed << setprecision(10) << err_percentuale << "\%" << endl;
-    }
-    else
-    {
-        int digits_e_r = 0 - floor(log10(err_percentuale));
-        if (err_percentuale >= 1) digits_e_r = 0;
-        cout << setw(12) << "\t" << "e_r = " << fixed << setprecision(digits_e_r + 1) << err_percentuale << "\%" << endl;
-    }
+    double err_percentuale = errore / valore * 100;
+    int digits_e_r = 0 - floor(log10(err_percentuale));
+    if (err_percentuale >= 1) { digits_e_r = 0; }
+    cout << setw(12) << "\t" << "e_r = " << fixed << setprecision(digits_e_r + 1) << err_percentuale << "\%" << endl;
 }
 
 
@@ -541,8 +458,8 @@ void risultato1(vector<double> par_best, bool approx_bool) {
 void risultato2(vector<double> par_best, bool approx_bool) {
     //Calcolo Hessiana
     vector<vector<double>> H = hessian(par_best);
-    //cout << "Matrice Hessiana: " << endl;
-    //stampaMatrice(H);
+    cout << "Matrice Hessiana: " << endl;
+    stampaMatrice(H);
 
     cout << endl;
 

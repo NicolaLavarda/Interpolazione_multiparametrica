@@ -83,16 +83,17 @@ double second_derivative(vector<double> params, int i) {
 vector<vector<double>> hessian(vector<double>& params) {
     int n = params.size();
     vector<vector<double>> H(n, vector<double>(n, 0.0));
-
+    //stampaMatrice(H);
+    static int ll = 0;
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j <= i; ++j) {  // Solo metà matrice (simmetrica)
             if (i != j) {
                 H[i][j] = second_derivative(params, i, j);
-                H[j][i] = H[i][j];
+                H[j][i] = H[i][j]; //cout << "aaa = " << ll << endl; ll++;
             }
             else
             {
-                H[i][i] = second_derivative(params, i);
+                H[i][i] = second_derivative(params, i); //cout << "bbb = " << ll << endl; ll++;
             }
         }
     }
