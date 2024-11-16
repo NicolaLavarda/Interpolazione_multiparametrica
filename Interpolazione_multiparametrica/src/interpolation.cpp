@@ -11,6 +11,7 @@
 #include <locale>
 #include <sstream>
 #include <stdexcept>
+#include <algorithm>
 
 using namespace std;
 
@@ -23,46 +24,97 @@ extern vector<vector<double>> par_matrix;
 extern int cicle_programms;                                                //numero di cicli di riduzione di 'spostamento'
 
 
+
 //Ricerca automatica logaritmica
-void ricerca_auto(vector<double>& par, vector<double>& par_auto, int n) {
-    if (n >= par.size()) return;
+void ricerca_auto(vector<double>& par, vector<double>& par_auto, vector<double>& par_def, int n) {
+    //mettere 'par_auto=par' e 'par_auto=par' prima della chiamata della funzione
+
     static double chi_min_auto = 1e10;
-    double min = -1e10;
-    double max = 1e10;
+    static vector<double> sec_best_par = par;
+    static double min = -1e10;
+    static double max = 1e10;
+    static double min_ordine = 0.1;
+    static bool salita = true;         //Sto scorrendo in "salita" i parametri fino ad arrivare all'ultimo per poi cominciare a tornare indietro per migliorarli uno a uno "all'indietro"
+    static int par_size = par.size();
+    
+    if (n >= par_size) {        // || (par_auto[n] != 0 && par[n] == 0)
+        salita = false;
+        return;
+    }
+    
+    
     double a = min;
     while (a <= max)
     {
-        par_auto[n] = a;
-        ricerca_auto(par, par_auto, n + 1);
-
-        double sum_chi = 0;
-        for (int i = 0; i < x.size(); i++)
+        //cout << "a = " << a << "e il max = " << max << endl;
+        //if (a <= max) cout << "ma che cazz..." << endl;
+        int k = 0;
+        if (n < par_size)
         {
-            sum_chi += pow((y[i] - funzione_interpolante(x, par_auto, i)) / sigma_y[i], 2);
+            if (par[n] == 0) {
+                par_auto[n] = a;
+                //n++;
+                //cout << "messo pari ad a e con n = " << n << endl;
+            }
+            else {          //if (salita)
+                while (n+k < par_size && par[n+k] != 0)
+                    k++;
+                //cout << "Sono a n = " << n << " e k = " << k << endl;
+                k--;
+            }
+        }
+        
+        //if (salita)
+        ricerca_auto(par, par_auto, par_def, n+1+k);
+
+        //Se sono in 'salita', qui sono arrivato all'ultimo parametro e ora comincio a tornare indietro a migliorare quelli precedenti (se sono parametri automatici "a")
+
+        if (par[n] != 0) return;    //Torno indietro se ne trovo uno che non è di quelli automatici "a" e procedo con quello successivo
+
+        double sum_chi = f_chi_quadro(par_auto);
+
+        //Debug
+        if (false) {
+            cout << "n = " << n << endl;
+            for (int k = 0; k < par_size; k++)
+            {
+                cout << par_auto[k] << "\t";
+            }
+            cout << endl;
+            cout << sum_chi << endl;
         }
 
-        /*
-        for (int k = 0; k < par.size(); k++)
-        {
-            cout << par_auto[k] << "\t";
-        }
-        cout << endl;
-        cout << sum_chi << endl;
-        */
 
-        if (sum_chi < chi_min_auto)
+        if (sum_chi <= chi_min_auto)
         {
-            par = par_auto;
+            sec_best_par = par_def;         // Il secondo miglior set di parametri
+            par_def = par_auto;             // Il miglior set di parametri
             chi_min_auto = sum_chi;
+            /*
+            if (min_ordine > 1e-5 && (a >= -min_ordine - 1e-9 && a <= -min_ordine + 1e-9))
+                min_ordine /= 10;
+            */
+            //cout << " --> yep" << endl;
         }
 
-        // Devo andare da -1e9 a 1e9 togliendo [-1e-2;+1e-2]
+        // Devo andare da -1e10 a 1e10 togliendo [-1e-2;+1e-2]
         (a < 0) ? a /= 10 : a *= 10;
-        if (a >= -0.001 - 1e-9 && a <= -0.001 + 1e-9)
-            a = 0.01;
+        if (a >= -min_ordine / 10 - 1e-9 && a <= -min_ordine / 10 + 1e-9)
+            a = min_ordine;
+        //cout << "a = " << a << endl;
+    }
+    //cout << "n = " << n << "e sono uscito dal while" << endl;
+
+    //Sono uscito dal while e verifico se sono proprio alla fine
+    auto it = find(par.begin(), par.end(), 0);      // restituisce un puntatore al primo elemento uguale a 0 (parametro automatico)
+    int index = distance(par.begin(), it);          // restituisce l'indice di tale elemento
+    
+    if (n == index)     //Sono alla fine di tutta l'esecuzione della funzione
+    {
+        par = par_def;              // Alla fine 'par'      sono i migliori parametri
+        par_auto = sec_best_par;    // Alla fine 'par_auto' sono i secondi migliori parametri
     }
 }
-
 
 
 void algoritmo_bisezione(vector<double> par, vector<double>& par_def, const vector<double> passo, int n) {
@@ -71,12 +123,26 @@ void algoritmo_bisezione(vector<double> par, vector<double>& par_def, const vect
     if (n >= par.size())
         return;
 
-    //Range con vettore passo
-    double range_min_par_n = par[n] - passo[n] / 2;
-    double range_max_par_n = par[n] + passo[n] / 2;
-    
+    double range_min_par_n = par[n];
+    double range_max_par_n = par[n];
 
-    double precisione_bisezione = 0.00001;
+    //Range con vettore passo
+    if (passo.empty())
+    {
+        range_min_par_n -= fabs(par[n] * 0.2);        // Per la ricerca logaritmica automatica iniziale
+        range_max_par_n += fabs(par[n] * 0.3);        //
+    }
+    else
+    {
+        range_min_par_n -= fabs(passo[n] / 2);        // Per lo svolgimento del programma principale
+        range_max_par_n += fabs(passo[n] / 2);        //
+    }
+
+    //cout << range_min_par_n << " - " << par[n] << " - " << range_max_par_n << endl;
+
+    double precisione_bisezione = 0.0001;
+    if (par.size()<3)
+        precisione_bisezione /= 100;    //Posso permettermi una precisione migliore con 1 o 2 parametri
 
 
     // PARAMETRO n
@@ -91,11 +157,7 @@ void algoritmo_bisezione(vector<double> par, vector<double>& par_def, const vect
     for (double p = range_min_par_n; p < range_max_par_n + fabs(range_max_par_n * 0.1); p += (range_max_par_n - range_min_par_n))   //primi due elementi agli estremi --> uso 'p < range_max_par_n + fabs(range_max_par_n * 0.1)' anzichè 'p <= range_max_par_n' per evitare di controllare valori tra double molto vicini
     {
         par[n] = p;
-        double sum_chi = 0;
-        for (int i = 0; i < x.size(); i++)
-        {
-            sum_chi += pow((y[i] - funzione_interpolante(x, par, i)) / sigma_y[i], 2);
-        }
+        double sum_chi = f_chi_quadro(par);
         chi_par_n.push_back(sum_chi);
         par_chi_n.push_back(p);
     }
@@ -123,11 +185,7 @@ void algoritmo_bisezione(vector<double> par, vector<double>& par_def, const vect
         algoritmo_bisezione(par, par_def, passo, n + 1);
 
         // ritorno a parametro precedente
-        double sum_chi = 0;
-        for (int i = 0; i < x.size(); i++)
-        {
-            sum_chi += pow((y[i] - funzione_interpolante(x, par, i)) / sigma_y[i], 2);
-        }
+        double sum_chi = f_chi_quadro(par);
         par_chi_n.push_back(par[n]);
         chi_par_n.push_back(sum_chi);
 
@@ -150,10 +208,8 @@ void algoritmo_bisezione(vector<double> par, vector<double>& par_def, const vect
             static int controllo_multiplo = 0;
             controllo_multiplo++;
             if (controllo_multiplo > 10) exit(EXIT_FAILURE);
-            cout << endl << "-------------------------------------";
-            cout << endl << "| ERRORE bisezione iniziale (par n) |";
-            cout << endl << "-------------------------------------";
-            cout << endl << endl; //exit(EXIT_FAILURE);
+            cout << endl << "ERRORE bisezione iniziale (par " << n << ")";
+            cout << endl; //exit(EXIT_FAILURE);
             return;
             break;
         }
@@ -173,11 +229,7 @@ void ricoprimento(vector<double>& par, vector<double>& par_def, const vector<dou
             //Algoritmo di bisezione --------------------------------------------------------------------
             algoritmo_bisezione(par, par_def, passo, 0);
 
-            double sum_chi_p = 0.0;
-            for (int i = 0; i < x.size(); i++)
-            {
-                sum_chi_p += pow((y[i] - funzione_interpolante(x, par_def, i)) / sigma_y[i], 2);
-            }
+            double sum_chi_p = f_chi_quadro(par_def);
 
             
 
@@ -195,7 +247,7 @@ void ricoprimento(vector<double>& par, vector<double>& par_def, const vector<dou
 
                 chi_quadro_min = sum_chi_p;
                 par_best = par_def;
-                chi_quadro.push_back(sum_chi_p);
+                //chi_quadro.push_back(sum_chi_p);          //Lo metto nella main in modo da aggiungerlo solo alla fine di un livello di ricoprimento (in uno stesso livello può essere che rimanga miniore del "per mille")
                 livelli[livello]++;
             }
             //-------------------------------------------------------------------------------------------
@@ -296,12 +348,8 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, int chi
     vector<double> primi_chi_dx = { par, max_val_dx };
     for (int t = 0; t < primi_chi_dx.size(); t++)
     {
-        double sum_chi = 0;
         parametri[numero_parametro] = primi_chi_dx[t];
-        for (int i = 0; i < x.size(); i++)
-        {
-            sum_chi += pow((y[i] - funzione_interpolante(x, parametri, i)) / sigma_y[i], 2);
-        }
+        double sum_chi = f_chi_quadro(parametri);
         dx_f_chi.push_back(parametri[numero_parametro]);
         dx_chi.push_back(sum_chi);
         //cout << parametri[numero_parametro] << endl;
@@ -320,11 +368,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, int chi
 
         parametri[numero_parametro] = dx_f_chi[posizione_min_chi_dx] + fabs(dx_f_chi[posizione_min_chi_dx] - dx_f_chi[posizione_sec_min_chi_dx]) / 2;
         //cout << parametri[numero_parametro] << endl;
-        double sum_chi = 0;
-        for (int i = 0; i < x.size(); i++)
-        {
-            sum_chi += pow((y[i] - funzione_interpolante(x, parametri, i)) / sigma_y[i], 2);
-        }
+        double sum_chi = f_chi_quadro(parametri);
         dx_f_chi.push_back(parametri[numero_parametro]);
         dx_chi.push_back(sum_chi);
 
@@ -363,12 +407,8 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, int chi
     vector<double> primi_chi_sx = { par, max_val_sx };          // par è rimasto al valore originale (/ottimizzato)
     for (int t = 0; t < primi_chi_sx.size(); t++)
     {
-        double sum_chi = 0;
         parametri[numero_parametro] = primi_chi_sx[t];
-        for (int i = 0; i < x.size(); i++)
-        {
-            sum_chi += pow((y[i] - funzione_interpolante(x, parametri, i)) / sigma_y[i], 2);
-        }
+        double sum_chi = f_chi_quadro(parametri);
         sx_f_chi.push_back(parametri[numero_parametro]);
         sx_chi.push_back(sum_chi);
         //cout << parametri[numero_parametro] << endl;
@@ -382,11 +422,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, int chi
 
         parametri[numero_parametro] = sx_f_chi[posizione_sec_min_chi_sx] + fabs(sx_f_chi[posizione_min_chi_sx] - sx_f_chi[posizione_sec_min_chi_sx]) / 2;
         //cout << parametri[numero_parametro] << endl;
-        double sum_chi = 0;
-        for (int i = 0; i < x.size(); i++)
-        {
-            sum_chi += pow((y[i] - funzione_interpolante(x, parametri, i)) / sigma_y[i], 2);
-        }
+        double sum_chi = f_chi_quadro(parametri);
         sx_f_chi.push_back(parametri[numero_parametro]);
         sx_chi.push_back(sum_chi);
 
@@ -420,6 +456,239 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, int chi
 }
 
 
+
+
+void linearFit(vector<double>& x, vector<double>& y, double& m, double& q) {
+    // Controllo che i vettori abbiano la stessa dimensione e non siano vuoti
+    if (x.size() != y.size() || x.empty()) {
+        throw invalid_argument("I vettori x e y devono avere la stessa dimensione e non essere vuoti.");
+    }
+
+    int n = x.size();
+    double sum_x = 0.0, sum_y = 0.0, sum_xy = 0.0, sum_xx = 0.0;
+
+    // Calcolo delle somme necessarie
+    for (int i = 0; i < n; ++i) {
+        sum_x += x[i];
+        sum_y += y[i];
+        sum_xy += x[i] * y[i];
+        sum_xx += x[i] * x[i];
+    }
+
+    // Calcolo di m e q
+    double denominator = n * sum_xx - sum_x * sum_x;
+    if (denominator == 0) {
+        throw runtime_error("Denominatore nullo. Interpolazione non definita.");
+    }
+
+    m = (n * sum_xy - sum_x * sum_y) / denominator;
+    q = (sum_y - m * sum_x) / n;
+}
+
+
+void bisezione_lin(vector<double>& par, vector<double> m, vector<double> q) {
+    
+    //Prima parte a step abbastanza piccoli e tutti regolari
+    double range_min_par_n = par[0] / 2;
+    double range_max_par_n = par[0] * 10;
+
+    if (par[0] < 0)
+    {
+        range_min_par_n = par[0] * 10;
+        range_max_par_n = par[0] / 2;
+    }
+
+    //cout << range_min_par_n << " < " << par[0] << " < " << range_max_par_n << endl;
+    
+    //Blocco ricerca bisezione lungo la retta (ad esempio se par[0]=10 allora va da 5 a 100 in bisezione)
+    if (1 == 1) {
+
+        double precisione_bisezione = 0.00001;
+
+        int controllo_par_n = 0;
+        vector<double> chi_par_n, par_chi_n;
+        double min_chi_par_n = 100000;                   //Importante valutar se mettere 'static' oppure no (meglio di no). Lascio che a volte sia "libera di sbagliare" e valutare combinazioni dei parametri che non necessariamente migliorino subito il chi quadro
+        double sec_min_chi_par_n = 1000000;
+        double posizione_min_chi_par_n = 0;
+        double posizione_sec_min_chi_par_n = 1;
+
+        for (double p = range_min_par_n; p < range_max_par_n + fabs(range_max_par_n * 0.1); p += (range_max_par_n - range_min_par_n))   //primi due elementi agli estremi --> uso 'p < range_max_par_n + fabs(range_max_par_n * 0.1)' anzichè 'p <= range_max_par_n' per evitare di controllare valori tra double molto vicini
+        {
+            par[0] = p;
+            // Definisco gli altri parametri in funzione del primo ( 'par[0]' ) utilizzando gli 'm' e 'q' secondo par[n] = m_n * par[0] + q_n;
+            for (int i = 1; i < par.size(); i++)
+            {
+                par[i] = m[i - 1] * par[0] + q[i - 1];
+            }
+            double sum_chi = f_chi_quadro(par);
+            chi_par_n.push_back(sum_chi);
+            par_chi_n.push_back(p);
+        }
+        if (chi_par_n[0] > chi_par_n[1]) {
+            posizione_min_chi_par_n = 1;
+            posizione_sec_min_chi_par_n = 0;
+        }
+
+        while (fabs(par_chi_n[posizione_min_chi_par_n] - par_chi_n[posizione_sec_min_chi_par_n]) > precisione_bisezione)
+        {
+
+            if (par_chi_n[posizione_min_chi_par_n] > par_chi_n[posizione_sec_min_chi_par_n])
+            {
+                par[0] = par_chi_n[posizione_sec_min_chi_par_n] + fabs(par_chi_n[posizione_min_chi_par_n] - par_chi_n[posizione_sec_min_chi_par_n]) / 2;
+            }
+            else
+            {
+                par[0] = par_chi_n[posizione_min_chi_par_n] + fabs(par_chi_n[posizione_min_chi_par_n] - par_chi_n[posizione_sec_min_chi_par_n]) / 2;
+            }
+
+            // Definisco gli altri parametri in funzione del primo ( 'par[0]' ) utilizzando gli 'm' e 'q' secondo par[n] = m_n * par[0] + q_n;
+            for (int i = 1; i < par.size(); i++)
+            {
+                par[i] = m[i - 1] * par[0] + q[i - 1];
+            }
+            double sum_chi = f_chi_quadro(par);
+            par_chi_n.push_back(par[0]);
+            chi_par_n.push_back(sum_chi);
+
+            /*
+            cout << endl;
+            for (int k = 0; k < par.size(); k++)
+                cout << par[k] << "\t";
+            cout << " -> ";
+            cout << sum_chi << endl;
+            */
+
+
+            if (sum_chi < min_chi_par_n)
+            {
+                sec_min_chi_par_n = min_chi_par_n;
+                min_chi_par_n = sum_chi;
+                posizione_sec_min_chi_par_n = posizione_min_chi_par_n;
+                posizione_min_chi_par_n = chi_par_n.size() - 1;
+            }
+            else {
+                sec_min_chi_par_n = sum_chi;
+                posizione_sec_min_chi_par_n = chi_par_n.size() - 1;
+            }
+
+            controllo_par_n++;
+            if (controllo_par_n > 100)
+            {
+                static int controllo_multiplo_lin = 0;
+                controllo_multiplo_lin++;
+                if (controllo_multiplo_lin > 10) exit(EXIT_FAILURE);
+                cout << endl << "ERRORE bisezione interpolazione lineare";
+                cout << endl; //exit(EXIT_FAILURE);
+                return;
+                break;
+            }
+        }
+
+    }
+
+
+    /*
+    cout << endl;
+    for (int k = 0; k < par.size(); k++)
+        cout << par[k] << "\t";
+    cout << " -> ";
+    cout << f_chi_quadro(par) << endl;
+    */
+
+
+    // par[0] ora è stato migliorato con "Blocco ricerca bisezione lungo la retta"
+
+    range_min_par_n = par[0] * 0.7;
+    range_max_par_n = par[0] * 1.3;
+
+    if (par[0] < 0)
+    {
+        range_min_par_n = par[0] * 1.3;
+        range_max_par_n = par[0] * 0.7;
+    }
+
+
+    double min_chi_lin_passi = 1e10;
+
+    vector<double> par_lin_finali;
+    double passo_i = (range_max_par_n - range_min_par_n) / 50;
+    for (double p = range_min_par_n; p < range_max_par_n; p += passo_i)
+    {
+        vector<double> par_lin_passi = par;
+        vector<double> passi_lin;
+        par_lin_passi[0] = p;
+        passi_lin.push_back(passo_i*2);
+        for (int i = 1; i < par.size(); i++)
+        {
+            par_lin_passi[i] = m[i - 1] * par_lin_passi[0] + q[i - 1];
+            passi_lin.push_back(fabs(par_lin_passi[i]));                    //Il passo (che poi diventa la metà in bisezione) è pari al parametro così va circa par*0.5 < par < par*1.5
+        }
+        /*
+        cout << "-------" << endl;
+        for (int k = 0; k < par.size(); k++)
+            cout << par_lin_passi[k] << "\t";
+        cout << " -> ";
+        cout << f_chi_quadro(par_lin_passi) << endl;
+        */
+
+        /*
+        vector<double> quadrante1 = par_lin_passi;
+        vector<double> quadrante2 = par_lin_passi;
+        vector<double> quadrante3 = par_lin_passi;
+        vector<double> quadrante4 = par_lin_passi;
+
+        vector<double> passi1;
+        vector<double> passi2;
+        vector<double> passi3;
+        vector<double> passi4;
+
+        for (int i = 1; i < par.size(); i++)        //Perpendicolarmente alla retta di direzione di minimizzazione del chi quardo, cerco su una superficie n-1 dim con bisezione di migliorare gli altri n-1 parametri (divido lo spazio in 4 quadranti con un vertice al centro in comune sul punto in questione della retta)
+        {
+            quadrante1[i] *= 1.5;
+            quadrante2[i] *= 1.5;
+            quadrante3[i] *= 1.5;
+            quadrante4[i] *= 1.5;
+        }
+        */
+
+        algoritmo_bisezione(par_lin_passi, par_lin_passi, passi_lin, 0);
+
+        /*
+        cout << endl;
+        for (int k = 0; k < par.size(); k++)
+            cout << par_lin_passi[k] << "\t";
+        cout << " -> ";
+        cout << f_chi_quadro(par_lin_passi) << endl;
+        cout << "-------" << endl;
+        */
+
+        double sum_chi_lin = f_chi_quadro(par_lin_passi);
+        if (sum_chi_lin < min_chi_lin_passi)
+        {
+            min_chi_lin_passi = sum_chi_lin;
+            par_lin_finali = par_lin_passi;
+        }
+    }
+    par = par_lin_finali;
+    
+    /*
+    cout << endl;
+    for (int k = 0; k < par.size(); k++)
+        cout << par[k] << "\t";
+    cout << " -> ";
+    cout << f_chi_quadro(par) << endl;
+    */
+
+}
+
+
+
+
+
+
+
+
+
 void risultato(double valore, double errore, string nome, bool arrotondamento) {
     if (!arrotondamento)
     {
@@ -432,12 +701,19 @@ void risultato(double valore, double errore, string nome, bool arrotondamento) {
         if (errore >= 1) { digits_val = 0; }
         cout << nome << " = ( " << fixed << setprecision(digits_val) << valore << " +- " << setprecision(digits_val) << errore << " )";
     }
-    double err_percentuale = errore / valore * 100;
-    int digits_e_r = 0 - floor(log10(err_percentuale));
-    if (err_percentuale >= 1) { digits_e_r = 0; }
-    cout << setw(12) << "\t" << "e_r = " << fixed << setprecision(digits_e_r + 1) << err_percentuale << "\%" << endl;
-}
 
+    double err_percentuale = fabs(errore / valore) * 100;    
+    if (!arrotondamento)
+    {
+        cout << setw(12) << "\t" << "e_r = " << fixed << setprecision(10) << err_percentuale << "\%" << endl;
+    }
+    else
+    {
+        int digits_e_r = 0 - floor(log10(err_percentuale));
+        if (err_percentuale >= 1) digits_e_r = 0;
+        cout << setw(12) << "\t" << "e_r = " << fixed << setprecision(digits_e_r + 1) << err_percentuale << "\%" << endl;
+    }
+}
 
 //Stampo a schermo i risultati con errori dal chi+1
 void risultato1(vector<double> par_best, bool approx_bool) {
@@ -458,10 +734,9 @@ void risultato1(vector<double> par_best, bool approx_bool) {
 void risultato2(vector<double> par_best, bool approx_bool) {
     //Calcolo Hessiana
     vector<vector<double>> H = hessian(par_best);
-    cout << "Matrice Hessiana: " << endl;
-    stampaMatrice(H);
+    //cout << "Matrice Hessiana: " << endl;
+    //stampaMatrice(H);
 
-    cout << endl;
 
     //Calcolo matrice covarianza (inversa dell'hessiana)
     vector<vector<double>> invH = inversa(H);
@@ -469,7 +744,6 @@ void risultato2(vector<double> par_best, bool approx_bool) {
     stampaMatrice(invH);
 
 
-    cout << endl;
     cout << "----------------------------------------------------------------" << endl;
     //Calcolo errori e stampo a schermo i risultati
     cout << "Parametri con errori da matrice di covarianza:" << endl;
@@ -480,7 +754,7 @@ void risultato2(vector<double> par_best, bool approx_bool) {
     }
     double GDL = x.size() - par_best.size();
     double p_value_val = p_value(chi_quadro_min, GDL);
-    cout << "chi_quadro = " << setprecision(3) << chi_quadro_min << " / " << GDL << endl;
+    cout << "chi_quadro = " << setprecision(3) << f_chi_quadro(par_best) << " / " << GDL << endl;
     cout << "p_value = " << p_value_val << endl;
     if (p_value_val < 0.05)
         cout << "Possibile sottostima degli errori" << endl;
@@ -489,3 +763,4 @@ void risultato2(vector<double> par_best, bool approx_bool) {
 
     cout << "----------------------------------------------------------------" << endl << endl;
 }
+

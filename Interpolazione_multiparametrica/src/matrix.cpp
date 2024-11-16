@@ -18,15 +18,9 @@ using namespace std;
 extern vector<double> x, y, sigma_y;                             //Dati iniziali
 
 
-
 //Funzione obbiettivo chi_quadro da usare nel calcolo delle derivate seconde per l'hessiana
 double f(vector<double> parametri) {
-    double sum_chi = 0;
-    for (int i = 0; i < x.size(); i++)
-    {
-        sum_chi += pow((y[i] - funzione_interpolante(x, parametri, i)) / sigma_y[i], 2);
-    }
-    return sum_chi;
+    return f_chi_quadro(parametri);
 }
 
 // Funzione per il calcolo numerico della derivata prima tramite differenze finite con O(h^4)
@@ -83,17 +77,16 @@ double second_derivative(vector<double> params, int i) {
 vector<vector<double>> hessian(vector<double>& params) {
     int n = params.size();
     vector<vector<double>> H(n, vector<double>(n, 0.0));
-    //stampaMatrice(H);
-    static int ll = 0;
+
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j <= i; ++j) {  // Solo metà matrice (simmetrica)
             if (i != j) {
                 H[i][j] = second_derivative(params, i, j);
-                H[j][i] = H[i][j]; //cout << "aaa = " << ll << endl; ll++;
+                H[j][i] = H[i][j];
             }
             else
             {
-                H[i][i] = second_derivative(params, i); //cout << "bbb = " << ll << endl; ll++;
+                H[i][i] = second_derivative(params, i);
             }
         }
     }
@@ -177,10 +170,14 @@ vector<vector<double>> matriceCofattori(const vector<vector<double>>& mat) {
 
 // Funzione per trasporre una matrice
 vector<vector<double>> trasposta(const vector<vector<double>>& mat) {
-    int n = mat.size();
-    vector<vector<double>> tras(n, vector<double>(n));
+    int m = mat.size();             // Numero di righe della matrice originale
+    int n = mat[0].size();           // Numero di colonne della matrice originale
 
-    for (int i = 0; i < n; i++) {
+    // Creazione della matrice trasposta di dimensioni n x m
+    vector<vector<double>> tras(n, vector<double>(m));
+
+    // Riempimento della matrice trasposta
+    for (int i = 0; i < m; i++) {
         for (int j = 0; j < n; j++) {
             tras[j][i] = mat[i][j];
         }

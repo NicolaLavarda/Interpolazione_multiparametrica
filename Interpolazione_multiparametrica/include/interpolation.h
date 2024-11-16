@@ -9,7 +9,7 @@ using namespace std;
 //double funzione_interpolante(vector<double> x, vector<double> par, int i);
 
 
-void ricerca_auto(vector<double>& par, vector<double>& par_auto, int n);
+void ricerca_auto(vector<double>& par, vector<double>& par_auto, vector<double>& par_def, int n);
 
 void algoritmo_bisezione(vector<double> par, vector<double>& par_def, const vector<double> passo, int n);
 
@@ -20,6 +20,10 @@ double chi_quadro_piu_uno(int num_parametri);
 double p_value(double chi_observato, int GDL);
 
 double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, int chi_piu_uno_val);
+
+void bisezione_lin(vector<double>& par, vector<double> m, vector<double> q);
+
+void linearFit(vector<double>& x, vector<double>& y, double& m, double& q);
 
 void risultato(double valore, double errore, string nome, bool arrotondamento);
 
