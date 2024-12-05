@@ -7,15 +7,11 @@
 #include <fstream>
 #include <string>
 #include <iomanip>
-#include <locale>
-#include <sstream>
 #include <stdexcept>
 #include <functional>
+#include <algorithm>
 
 using namespace std;
-
-
-extern vector<double> x, y, sigma_y;                             //Dati iniziali
 
 
 //Funzione obbiettivo chi_quadro da usare nel calcolo delle derivate seconde per l'hessiana
@@ -23,35 +19,12 @@ double f(vector<double> parametri) {
     return f_chi_quadro(parametri);
 }
 
-// Funzione per il calcolo numerico della derivata prima tramite differenze finite con O(h^4)
-double first_derivative_Oh4(function<double(vector<double>, vector<double>, int)> f, vector<double> params, int i) {
-    double h = 1e-7;
-    vector<double> p1 = params, p2 = params, p3 = params, p4 = params;
-
-    p1[i] += 2 * h;  // f(p_i + 2h)
-    p2[i] += h;      // f(p_i + h)
-    p3[i] -= h;      // f(p_i - h)
-    p4[i] -= 2 * h;  // f(p_i - 2h)
-
-    return (-f(x, p1, 1) + 8 * f(x, p2, 1) - 8 * f(x, p3, 1) + f(x, p4, 1)) / (12 * h);
-}
-
-
-// Funzione per il calcolo numerico della derivata seconda tramite differenze finite
-double second_derivative1(vector<double> params, int i, int j) {                       //function<double(const std::vector<double>&)> f
-    double h = 1e-7;
-    vector<double> p1 = params, p2 = params, p3 = params, p4 = params;
-
-    p1[i] += h; p1[j] += h;  // f(p_i + h, p_j + h)
-    p2[i] += h;              // f(p_i + h, p_j)
-    p3[j] += h;              // f(p_i, p_j + h)
-    // f(p_i, p_j) is simply f(params)
-    return (f(p1) - f(p2) - f(p3) + f(params)) / (h * h);
-}
 
 // Calcolo derivate seconde miste
 double second_derivative(vector<double> params, int i, int j) {
-    double h = 1e-5;
+    auto min_it = std::min_element(params.begin(), params.end());
+    //double h = *min_it * 1e-5;
+    double h = 1e-5; // * fabs(*min_it);
     vector<double> p1 = params, p2 = params, p3 = params, p4 = params;
 
     p1[i] += h; p1[j] += h;  // f(p_i + h, p_j + h)
@@ -64,7 +37,9 @@ double second_derivative(vector<double> params, int i, int j) {
 
 // Calcolo derivate seconde pure
 double second_derivative(vector<double> params, int i) {
-    double h = 1e-5;
+    //auto min_it = std::min_element(params.begin(), params.end());
+    //double h = *min_it * 1e-5;
+    double h = 1e-5; // *fabs(params[i]);
     vector<double> p1 = params, p2 = params, p3 = params;
 
     p1[i] += h;  // f(p_i + h)

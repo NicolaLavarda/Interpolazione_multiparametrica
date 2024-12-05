@@ -1,3 +1,3 @@
 clear
-rm -f main
-c++ -o main main.cpp src/*.cpp -Iinclude
+rm -f interpolate
+c++ -o interpolate main.cpp src/*.cpp -Iinclude

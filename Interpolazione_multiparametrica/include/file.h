@@ -4,9 +4,9 @@
 #include <vector>
 #include <string>
 
-using namespace std;
+int readFile(const std::string filePath, std::vector<double>& x, std::vector<double>& sigma_x, std::vector<double>& y, std::vector<double>& sigma_y);
 
-void Popolamento_vettori(vector<double>& x, vector<double>& y, vector<double>& sigma_y, string file_dati);
+//void Popolamento_vettori(std::vector<double>& x, std::vector<double>& y, std::vector<double>& sigma_y, std::string file_dati);
 
 
 #endif
