@@ -284,7 +284,7 @@ int worst_parameter(vector<double>& m_lin, vector<double>& q_lin) {
 
 
 //funzione effettiva da usare nella main
-void linear_mode(vector<vector<double>>& par_lin, vector<double>& m_lin, vector<double>& q_lin, bool& errore_lin, bool& ricerca_retta, bool& faster) {
+void linear_mode(vector<vector<double>>& par_lin, vector<double>& m_lin, vector<double>& q_lin, bool& errore_lin, bool& ricerca_retta, bool& faster, bool complex) {
     //Modalità con interpolazione lineare dei parametri migliorati i primi 3 livelli
     int num_point = 3;  //3 punti per l'interpolazione della retta
     if (faster)
@@ -395,15 +395,21 @@ void linear_mode(vector<vector<double>>& par_lin, vector<double>& m_lin, vector<
             chi_quadro_min = chi_lin_fin;
             ricerca_retta = true;
 
-            cout << endl << "Parametri bisez_lin migliorati rispetto a par" << n_worst << ":" << endl;
-            for (int k = 0; k < par_best.size(); k++)
-                cout << par_bisez_lin[k] << "\t";
-            cout << endl << "Chi quadro = " << chi_lin_fin << endl;
+            if (complex)
+            {
+                cout << endl << "Parametri bisez_lin migliorati rispetto a par" << n_worst << ":" << endl;
+                for (int k = 0; k < par_best.size(); k++)
+                    cout << par_bisez_lin[k] << "\t";
+                cout << endl << "Chi quadro = " << chi_lin_fin << endl;
+            }
         }
         else
         {
             errore_lin = true;
-            cout << "-> non ha funzionato il metodo della retta con par" << n_worst << " (continuo al vecchio modo)" << endl;
+            if (complex)
+            {
+                cout << "-> non ha funzionato il metodo della retta con par" << n_worst << " (continuo al vecchio modo)" << endl;
+            }
         }
     }
 }

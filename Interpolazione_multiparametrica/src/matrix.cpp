@@ -74,13 +74,14 @@ vector<vector<double>> hessian(vector<double>& params) {
 
 
 // Funzione per stampare una matrice
-void stampaMatrice(const vector<vector<double>>& mat) {
+void stampaMatrice(const vector<vector<double>>& mat, std::ostream& output) {
     for (const auto& row : mat) {
-        cout << "(   ";
+        output << "(   ";
         for (double value : row) {
-            cout << left << setw(10) << setprecision(10) << value << "   ";
+            double format = (value < 1e-6) ? ios::scientific : ios::fixed;
+            output << left << setw(10) << (format == ios::scientific ? scientific : fixed) << setprecision((format == ios::scientific) ? 6 : 10) << value << "   ";
         }
-        cout << ")" << endl;
+        output << ")" << endl;
     }
 }
 

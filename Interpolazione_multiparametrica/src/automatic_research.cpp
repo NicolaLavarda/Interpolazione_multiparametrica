@@ -102,19 +102,22 @@ void ricerca_auto(vector<double>& par, vector<double>& par_auto, vector<double>&
 }
 
 
-void parametri_auto(vector<double>& par) {
+void parametri_auto(vector<double>& par, bool output) {
 
     //Ricerca automatica logaritmica
     vector<double> par_auto = par;
     vector<double> par_def = par;
     ricerca_auto(par, par_auto, par_def, 0);
 
-    cout << "Parametri da ricerca automatica:" << endl;
-    for (int k = 0; k < par.size(); k++)
-        cout << par[k] << "\t";
-
     chi_quadro_min = f_chi_quadro(par);
-    cout << endl << "Chi quadro = " << chi_quadro_min << endl;
+    if (output)
+    {
+        cout << "Parametri da ricerca automatica:" << endl;
+        for (int k = 0; k < par.size(); k++)
+            cout << par[k] << "\t";
+
+        cout << endl << "Chi quadro = " << chi_quadro_min << endl;
+    }
 
 
     //Cerco di capire se è meglio 'par' o 'par_auto' con algoritmo di bisezione ('par_auto' è il secondo migliore)
@@ -129,11 +132,13 @@ void parametri_auto(vector<double>& par) {
 
     par = (f_chi_quadro(par_i1) < f_chi_quadro(par_i2)) ? par_i1 : par_i2;
 
-    cout << "Parametri automatici iniziali migliorati:" << endl;
-    for (int k = 0; k < par.size(); k++)
-        cout << par[k] << "\t";
-
     chi_quadro_min = f_chi_quadro(par);
-    cout << endl << "Chi quadro = " << chi_quadro_min << endl;
+    if (output)
+    {
+        cout << "Parametri automatici iniziali migliorati:" << endl;
+        for (int k = 0; k < par.size(); k++)
+            cout << par[k] << "\t";
 
+        cout << endl << "Chi quadro = " << chi_quadro_min << endl;
+    }
 }

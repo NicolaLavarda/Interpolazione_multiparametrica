@@ -13,5 +13,6 @@ double f_chi_quadro(std::vector<double> par);
 
 double funzione_interpolante(std::vector<double> par, double x);
 
+double x_function(std::vector<double> par, int i);
 
 #endif

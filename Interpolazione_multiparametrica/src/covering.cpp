@@ -120,7 +120,7 @@ void algoritmo_bisezione(vector<double> par, vector<double>& par_def, const vect
         controllo_par_n++;
         if (controllo_par_n > 100)
         {
-            throw runtime_error("Bisezione fallita");
+            throw runtime_error("bisection algorithm faild");
             //static int controllo_multiplo = 0;
             //controllo_multiplo++;
             //if (controllo_multiplo > 10) exit(EXIT_FAILURE);
@@ -135,7 +135,7 @@ void algoritmo_bisezione(vector<double> par, vector<double>& par_def, const vect
 
 
 // Funzione per generare i parallelepipedi n-dimensionali sulla "superficie" del livello corrente con passi diversi in ogni dimensione
-void ricoprimento(vector<double>& par, vector<double>& par_def, const vector<double> passo, int livello, int dimensione, bool is_on_surface) {
+void ricoprimento(vector<double>& par, vector<double>& par_def, const vector<double> passo, int livello, int dimensione, bool is_on_surface, bool output) {
     vector<double> par_prov = par_matrix[cicle_programms - 1]; //non va bene 'static vector<double> par_prov = par;' perché altrimenti mi rimane anche per le riesecuzioni del programma successive. Importante che sia esattamente così: se passassi in qualsiasi modo il vettore alla funzione fidati che non funziona perché poi cambia, fidati.
 
     if (dimensione == par.size()) {
@@ -151,7 +151,7 @@ void ricoprimento(vector<double>& par, vector<double>& par_def, const vector<dou
             }
             catch (const std::runtime_error& e) {
                 par_def = par_provv_def;            // la funzione di bisezione poteva modificare solo 'par_def' e in caso di errore lo ripristino
-                std::cerr << "Catturata std::runtime_error: " << e.what() << endl;
+                std::cerr << "ERROR in bisection algorithm: " << e.what() << endl;
             }
 
             double sum_chi_p = f_chi_quadro(par_def);
@@ -159,16 +159,18 @@ void ricoprimento(vector<double>& par, vector<double>& par_def, const vector<dou
 
 
             if (sum_chi_p < chi_quadro_min) {
-                if (1 == 2) {       //di debug
-                    string output_testo = "Parametri ottimizzati: \n";
+                /*
+                    string output_testo = "Optimized parameters: \n";
                     for (int p = 0; p < par.size(); p++) {
                         output_testo += "par" + to_string(p) + ":\t" + to_string(par_def[p]) + "\n";
                     }
                     output_testo += "chi_quadro = " + to_string(sum_chi_p) + "\n";
                     cout << output_testo << endl;           //output valori
-                }
-                else
+                */
+                if (output)
+                {
                     cout << "\t" << sum_chi_p;
+                }
 
                 chi_quadro_min = sum_chi_p;
                 par_best = par_def;
@@ -190,7 +192,7 @@ void ricoprimento(vector<double>& par, vector<double>& par_def, const vector<dou
         bool surface_condition = m;
         //bool surface_condition = (fabs(delta - livello * passo[dimensione]) < 1e-9);  // Precisione double circa pari a 1e-9
         par[dimensione] = par_prov[dimensione] + delta;  // Aggiorna la coordinata corrente
-        ricoprimento(par, par_def, passo, livello, dimensione + 1, is_on_surface || surface_condition);
+        ricoprimento(par, par_def, passo, livello, dimensione + 1, is_on_surface || surface_condition, output);
     }
 }
 

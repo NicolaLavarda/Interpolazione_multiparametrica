@@ -4,7 +4,6 @@
 #include <vector>
 #include <string>
 
-
 // Chiamare nel programma 'Results(par_best, approx);'
 // in modo da creare un oggetto temporaneo che restituisca semplicemente a schermo i risultati
 
@@ -12,15 +11,16 @@
 // Classe Base
 class Results_base {
 public:
-    Results_base(std::vector<double> par, bool approx_bool);
+    Results_base(std::vector<double> par, bool approx_bool, std::ostream& output);
 
     //Volendo può essere usata da sola con 'Results_base.general_result(val, err, name, approx)'
     void general_result(double valore, double errore, std::string nome, bool arrotondamento);
 
 protected:
-    vector<double> par;
+    std::vector<double> par;
     double chi_min;
     bool approx_bool;
+    std::ostream& out; // Stream di output
 };
 
 // Classe intermedia 1, eredita virtualmente da Base
@@ -39,7 +39,7 @@ public:
 // Classe derivata, eredita da entrambe le classi intermedie
 class Results : public Result1, public Result2 {
 public:
-    Results(std::vector<double>& par_derived, bool approx_bool);
+    Results(std::vector<double>& par_derived, bool approx_bool, std::ostream& output);
     //chiama in ordine 'Results_base', 'Result1' e 'Result2' ed infine qui dentro al costruttore di 'Results'
     // 
     // Chiamare nel programma 'Results(par_best, approx);'

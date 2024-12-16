@@ -58,25 +58,29 @@ double p_value(double chi_observato, int GDL) {
 }
 
 
-double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, int chi_piu_uno_val) {
+double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double chi_piu_uno_val, double range) {
 
     //Definsco variabili iniziali in base a quale parametro (numero_parametro) voglio analizzare
     double par = parametri[numero_parametro];
     if (numero_parametro >= parametri.size()) {
-        cout << endl << "-----------------------------------";
-        cout << endl << "| ERRORE ricerca errori parametri |";
-        cout << endl << "-----------------------------------";
-        cout << endl << endl; exit(EXIT_FAILURE);
+        cout << endl << "ERROR chi+1 - not number parameters valid";
+        cout << endl << endl; //exit(EXIT_FAILURE);
+        return std::numeric_limits<double>::quiet_NaN();
     }
 
     //precisione
     double precisione_par = fabs(par * 0.0000001);
     double chi_min = f_chi_quadro(parametri);
 
-    //Estremi per cui il sigma sarebbe altrimenti maggiore del 30%
-    double max_val_dx = par + fabs(par * 0.1);              //non par*1.1 altrimenti errore con numeir negativi
-    double max_val_sx = par - fabs(par * 0.1);
-    //cout << max_val_sx << "\t" << par << "\t" << max_val_dx << endl;
+    //Estremi per cui il sigma sarebbe altrimenti maggiore del range (di solito do valore 20%)
+    range = (range == 0) ? 0.20 : range;
+    double max_val_dx = par + fabs(par * range);              //non par*1.1 altrimenti errore con numeir negativi
+    double max_val_sx = par - fabs(par * range);
+    if (fabs(par) < 0.1)
+    {
+        max_val_dx = 1;       // se il parametro è vicino a 0 spesso l'errore può essere molto più grande del valore (ad esempio l'intercetta di una retta che viene 0.02 può avere benissimo un errore di 0.1)
+        max_val_sx = -1;
+    }
 
     //Cerco il chi + 1 di destra --------------------------------
 
@@ -128,7 +132,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, int chi
         controllo_dx++;
         if (controllo_dx > 100)
         {
-            cout << endl << "ERRORE chi+1 di destra (par" << numero_parametro << ")";
+            cout << endl << "ERROR chi+1 dx (par" << numero_parametro << ")";
             cout << endl << endl; //exit(EXIT_FAILURE);
             return std::numeric_limits<double>::quiet_NaN();
             break;
@@ -182,9 +186,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, int chi
         controllo_sx++;
         if (controllo_sx > 100)
         {
-            cout << endl << "-----------------------------------";
-            cout << endl << "| ERRORE chi+1 di sinistra (par" << numero_parametro << ") |";
-            cout << endl << "-----------------------------------";
+            cout << endl << "| ERROR chi+1 sx (par" << numero_parametro << ")";
             cout << endl << endl; //exit(EXIT_FAILURE);
             return std::numeric_limits<double>::quiet_NaN();
             break;
@@ -195,7 +197,17 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, int chi
     // Definisco il sigma finale, media dei due chi+1 trovati
     double a = dx_f_chi[posizione_min_chi_dx] + fabs(dx_f_chi[posizione_min_chi_dx] - dx_f_chi[posizione_sec_min_chi_dx]) / 2; //cout << endl << "-->" << a << endl;
     double b = sx_f_chi[posizione_min_chi_sx] + fabs(sx_f_chi[posizione_min_chi_sx] - sx_f_chi[posizione_sec_min_chi_sx]) / 2; //cout << endl << "-->" << b << endl;
-    return (a - b) / 2;
+    double sigma = (a - b) / 2;
+    
+    if (fabs(sigma / par) > 0.98 * range)       //se l'errore è al limite del range, è necessario ampliare il range
+    {
+        range *= 10;
+        sigma = chi_piu_uno_par_n(parametri, numero_parametro, chi_piu_uno_val, range);     //continuo ricorsivamente la ricerca finché l'errore non sta dentor al range
+    }
+
+    return sigma;
+
+
 }
 
 

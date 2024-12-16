@@ -6,7 +6,7 @@
 
 void algoritmo_bisezione(std::vector<double> par, std::vector<double>& par_def, const std::vector<double> passo, int n);
 
-void ricoprimento(std::vector<double>& par, std::vector<double>& par_def, const std::vector<double> passo, int livello, int dimensione, bool is_on_surface);
+void ricoprimento(std::vector<double>& par, std::vector<double>& par_def, const std::vector<double> passo, int livello, int dimensione, bool is_on_surface, bool output);
 
 
 std::vector<double> grad_f_chi_quadro(const std::vector<double> par);

@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <functional>
+#include <fstream>
 
 using namespace std;
 
@@ -17,7 +18,7 @@ vector<vector<double>> hessian(vector<double>& params);
 
 
 
-void stampaMatrice(const vector<vector<double>>& mat);
+void stampaMatrice(const vector<vector<double>>& mat, std::ostream& output);
 
 double determinante(const vector<vector<double>>& mat);
 

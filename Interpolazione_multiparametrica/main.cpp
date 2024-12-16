@@ -6,6 +6,9 @@
 #include "matrix.h"
 #include "interpolating_function.h"
 #include "results.h"
+#include "plot.h"
+#include "chi_square.h"
+
 #include <iostream>
 #include <cstdlib>
 #include <vector>
@@ -19,8 +22,11 @@
 #include <exception>
 #include <functional>
 #include <map>
-//#include "TCanvas.h"
-//#include "TGraph.h"
+
+#include "TCanvas.h"
+#include <TMultiGraph.h>
+#include <TGraphErrors.h>
+#include <TH2F.h>
 
 using namespace std;
 
@@ -61,12 +67,12 @@ int main(int argc, char* argv[]) {
     //------------RICERCA AUTOMATICA--------------------
 
     if (num_a != 0)
-        parametri_auto(par);
+        parametri_auto(par, complex);
     par_best = par;
 
 
-    if (faster) {        //Stampa subito a schermo dei risultati
-        Results(par_best, approx);
+    if (faster && complex) {        //Stampa subito a schermo dei risultati (se in modalità 'complex' oltre che 'faster')
+        Results(par_best, approx, std::cout);       // passando 'std::cout' stampo a schermo, altrimenti potrei passargli un ofstream perché scriva su un file ad esempio
     }
 
     chi_quadro_min = 1e30;      //resetto il chi quadro minimo modificato dalla bisezione per il miglioramento della ricerca automatica logaritmica, in modo che le bisezioni successive in 'ricoprimento' possano partire anche con valori più alti rispetto all'attuale miglior chi quadro minimo
@@ -103,12 +109,19 @@ int main(int argc, char* argv[]) {
         int cicle = 1;      //primo ciclo di livelli
         for (int k = 0; k < 15; k++) {
 
-            cout << endl << "Livello " << cicle << "." << livello << ":";
+            if (!complex)
+            {
+                cout << "\rNumber of program iterations: " << cicle_programms << flush;
+            }
+            else
+            {
+                cout << endl << "Livello " << cicle << "." << livello << ":";
+            }
             
 
             // Generazione dei centri dei parallelepipedi n-dimensionali sulla superficie e stima con bisezione
-            ricoprimento(par, par_def, passo, livello, 0, false);   //I migliori parametri sono in 'par_best'            
-
+            ricoprimento(par, par_def, passo, livello, 0, false, complex);   //I migliori parametri sono in 'par_best'            
+            
 
             if (complex)    // l'analisi è presumibilmente lunga e difficile (forse instabile) quindi voglio vedere i parametri migliorati ad ogni fine di livello [-> volendo, aggiungere all'if '&& cicle_programms == 1']
             {
@@ -123,7 +136,7 @@ int main(int argc, char* argv[]) {
             bool ricerca_retta = false;     //Cambia in 'true' se il metodo qui sotto della ricerca lungo la retta funziona
             if (par.size() == 1) errore_lin = true;
             if ((!errore_lin || retta) && cicle == 1)       // se da input metto retta=true vuol dire che voglio che venga sempre usato quando possibile il metodo della retta
-                linear_mode(par_lin, m_lin, q_lin, errore_lin, ricerca_retta, faster);      //fin tanto che non si hanno almeno un tot di punti prefissati li si raccolgono, poi 'linear_mode' continua effettivamente cercando di migliorare i parametri
+                linear_mode(par_lin, m_lin, q_lin, errore_lin, ricerca_retta, faster, complex);      //fin tanto che non si hanno almeno un tot di punti prefissati li si raccolgono, poi 'linear_mode' continua effettivamente cercando di migliorare i parametri
             
 
 
@@ -160,7 +173,7 @@ int main(int argc, char* argv[]) {
             //Per la ricerca lungo la retta
             if (ricerca_retta)
             {
-                cout << endl << "esco per la retta" << endl;
+                //cout << endl << "esco per la retta" << endl;
                 break;
             }
 
@@ -169,28 +182,30 @@ int main(int argc, char* argv[]) {
             {
                 double check = (chi_quadro[chi_quadro.size() - 2] - chi_quadro[chi_quadro.size() - 1]) - chi_quadro[chi_quadro.size() - 1] * 0.001;
                 if (check < 0) {
-                    cout << endl << "esco chi quadro < 0.001" << endl;
+                    //cout << endl << "esco chi quadro < 0.001" << endl;
                     break;
                 }
             }
 
             //Se è stato migliorato solo una volta e sono già al 6° tentativo tanto vale uscire
             if (chi_quadro.size() == 1 && k > 5) {
-                cout << endl << "esco al sesto tentativo" << endl;
+                //cout << endl << "esco al sesto tentativo" << endl;
                 break;
             }
 
             //Se non è migliorato nemmeno una volta il chi quadro e sono al 7° tentativo tanto vale terminare tutto il programma
             if (chi_quadro.size() == 0 && k > 6) {
-                cout << endl << "Non e' possibile migliorare ulteriormente il chi quadro" << endl;
+                //cout << endl << "Non e' possibile migliorare ulteriormente il chi quadro" << endl;
                 goto end_loops;     //torna nella main principale uscendo anche dal while
             }
         }
 
 
-
-        //Stampo a schermo i risultati
-        Results(par_best, approx);
+        if (complex)
+        {
+            //Stampo a schermo i risultati
+            Results(par_best, approx, std::cout);
+        }
 
 
         //riaggiorno parametri, libero 'chi_quadro' e 'livelli', e passo al ciclo di programma successivo
@@ -208,129 +223,105 @@ int main(int argc, char* argv[]) {
     end_loops:  //arrivo qui se ho trovato 'goto end_loops;' per uscire dal miglioramento dei parametri non riuscendo a migliorare meglio del per mille il chi quadro
 
 
-    //------------PRODUZIONE DEI GRAFICI--------------------
-    if (!plot)
+    // stampo i risultati a schermo una sola volta alla fine se 'complex=false'
+    if (!complex)
     {
-        string plt;
-        cout << endl << "Creare i grafici? [Y/n] "; cin >> plt;      // Sicuro di non volere i grafici?
-        plot = (plt == "Y" || plt == "y") ? true : false;
+        //Stampo a schermo i risultati
+        Results(par_best, approx, std::cout);
     }
+    else       //Altrimenti miglioro i parametri usando il metodo 'discesa_gradiente' (che verrebbe comunque usato nel costruttore di 'Results')
+    {
+        double sensibility = 0.01;
+        vector<double> par_grad = par_best;
+        discesa_gradiente(par_grad, sensibility);
+        if (f_chi_quadro(par_grad) < f_chi_quadro(par_best))
+            par_best = par_grad;
+    }
+
+
+    //------------SALVATAGGIO DEI RISULTATI-----------------
+
+
+    //stampo i risultati nel file di testo
+    writeFile(string(argv[1]), x, sigma_x, y, sigma_y, par_best, approx, string(argv[par_best.size() + 2]));
+
+
+    //------------PRODUZIONE DEI GRAFICI--------------------
+
     if (plot)
     {
-        cout << endl << "--> Grafici non ancora implementati" << endl;
-
-        /*
-        //Creo un TCanvas di Root dove inserisco tutti i grafici necessari
-        TCanvas* c1 = new TCanvas("c1", "Canvas dinamico", 1400, 800);
-
-        //Vettore di grafici
+        //grafici da plottare
+        TMultiGraph* grafico_dati_interpolazione;
         vector<TH2F*> grafici_chi2;
-        TMultiGraph* grafico_dati_interpolazione = nullptr;
+        vector<TGraphErrors*> grafici_residui;
 
-        //----------------------------------------------------
+        //Calcolo gli errori sui parameteri per capire quanto grandi plottare i grafici sulle distrubuzioni del chi quadro
         vector<double> sigma_par;
+        double chi_piu_uno_val = 1; if (false) chi_piu_uno_val = chi_quadro_piu_uno(par.size());
+        double range = 0.20;   //cerco l'errore al chi+1 entro +-20% del valore del parametro (in caso fosse più grande la funzione allarga la ricerca)
         for (int i = 0; i < par.size(); i++)
-        {
-            sigma_par.push_back(par_best / 1000);       // --> PROVVISORIO <--
-        }
-
-        //Creazione dei grafici
-        plot(grafici_chi2, grafico_dati_interpolazione, par_best, sigma_par);
+            sigma_par.push_back(chi_piu_uno_par_n(par_best, i, chi_piu_uno_val, range));
 
 
+        //Creazione del grafico con i dati e la funzione interpolante
+        plot_function(grafico_dati_interpolazione, par_best, sigma_par);
+
+        //Creazione dei grafici di distribuzione del chi quadro
+        if (par_best.size() == 2 || par_best.size() == 3)
+            plot_chi_distribution(grafici_chi2, par_best, sigma_par);
+
+        //Creazione dei grafici dei residui (residui x, residui y e residui xy)
+        plot_residui(grafici_residui, par_best);
 
 
+        //vettore che contiene i puntatori a tutti i canvas che mi servono
+        vector<TCanvas*> Canvas_grafici;
 
-        // Decidi cosa fare con il canvas nella main
-        c1->Draw();                 // Mostra il canvas
-        c1->SaveAs("output.png");   // Salva come PNG
-        c1->SaveAs("output.root");  // Salva come file ROOT
+        //formato del file in cui salvare i grafici
+        string format = ".png";
 
-        // Pulisci la memoria
-        for (auto grafico : grafici) {
-            delete grafico;
-        }
-        delete c1;
-        */
+        //Nome base di tutti i grafici
+        string base_name = string(argv[1]).erase(string(argv[1]).size() - 4, 4) + "_";      // rimuove '.txt' dal nome del file dati e lo usa per nominare i file dei grafici
 
-
-        /*
-        c1->cd(1);
-        grafico_1->Draw("a");
-        c1->cd(2);
-        //gPad->SetLogx();              //Imposta scala logaritmica sulle x
+        //primo grafico corrispondente al plot dei dati con funzione interpolante
+        Canvas_grafici.push_back(new TCanvas("c1", "c1", 800, 600));
+        Canvas_grafici[0]->cd();
         grafico_dati_interpolazione->Draw("a");
-        legend->Draw();
-        c1->cd(1);
-        gPad->Pop();
+        Canvas_grafici[0]->Update();
+        Canvas_grafici[0]->SaveAs((base_name + "c1" + format).c_str());
 
-        c1->Update();
+        //grafici distribuzioni del chi_quadro
+        if (par_best.size() == 2 || par_best.size() == 3)     //solo se ci sono 2 o 3 parametri (altrimenti non ha senso fare questo tipo di grafico)
+        {
+            for (int i = 0; i < grafici_chi2.size(); i++)
+            {
+                string name_canvas = "c" + to_string(i + 2);
+                Canvas_grafici.push_back(new TCanvas(name_canvas.c_str(), name_canvas.c_str(), 800, 600));
 
-        //per i grafici a colori:
+                canvas_chi_distribution(Canvas_grafici[i + 1], grafici_chi2[i], par_best, sigma_par, i);    // aggiungo le linee a 1 sigma e salvo i grafici
 
-                c2->cd(1);
-        grafico_1->Draw("colz");
-        c2->cd(2);
-        grafico_2->Draw("a");
-        legend->Draw();
-        c2->cd(1);
-        gPad->Pop();
+                string file_name_canvas = base_name + name_canvas + format;
+                Canvas_grafici[i + 1]->SaveAs(file_name_canvas.c_str());
+            }
+        }
 
-        c2->Update();
-        */
+        //grafici dei residui
+        if (sigma_y.size() != 0)
+        {
+            for (int i = 0; i < grafici_residui.size(); i++)
+            {
+                string name_canvas = "c" + to_string(i + 2 + grafici_chi2.size());
+                Canvas_grafici.push_back(new TCanvas(name_canvas.c_str(), name_canvas.c_str(), 800, 600));
 
+                canvas_residui(Canvas_grafici[i + 1 + grafici_chi2.size()], grafici_residui[i], i);
 
-        
-
-
-
-        /*
-        TCanvas* c2 = new TCanvas("c2", "c2", 0, 0, 1400, 500);
-        c2->Divide(2, 0, 0.01, 0.01);
-
-        TCanvas* c3 = new TCanvas("c3", "c3", 0, 0, 1500, 1000);
-        c3->Divide(2, 2, 0.02, 0.01);
-        */
-
-
-
-
-        /*
-        c3->cd(1);
-        gPad->SetLeftMargin(0.11);
-        gPad->SetRightMargin(0.12);
-        gPad->SetTopMargin(0.1);
-        gPad->SetBottomMargin(0.1);
-        grafico_1->Draw("colz");
-        c3->cd(2);
-        gPad->SetLeftMargin(0.11);
-        gPad->SetRightMargin(0.12);
-        gPad->SetTopMargin(0.1);
-        gPad->SetBottomMargin(0.1);
-        grafico_2->Draw("colz");
-        c3->cd(3);
-        gPad->SetLeftMargin(0.11);
-        gPad->SetRightMargin(0.12);
-        gPad->SetTopMargin(0.1);
-        gPad->SetBottomMargin(0.1);
-        grafico_3->Draw("colz");
-        c3->cd(4);
-        gPad->SetLeftMargin(0.11);
-        gPad->SetRightMargin(0.12);
-        gPad->SetTopMargin(0.1);
-        gPad->SetBottomMargin(0.1);
-        grafico_4->Draw("a");
-        legend->Draw();
-        c3->cd(1);
-        gPad->Pop();
-
-
-        c3->Update();
-        */
+                string file_name_canvas = base_name + name_canvas + format;
+                Canvas_grafici[i + 1 + grafici_chi2.size()]->SaveAs(file_name_canvas.c_str());
+            }
+        }
 
     }
 
-    
 
     return 0;
 }

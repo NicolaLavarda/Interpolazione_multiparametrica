@@ -14,7 +14,7 @@ void bisezione_lin(std::vector<double>& par, std::vector<double> m, std::vector<
 int worst_parameter(std::vector<double>& m_lin, std::vector<double>& q_lin);
 
 //funzione effettiva da usare nella main
-void linear_mode(std::vector<std::vector<double>>& par_lin, std::vector<double>& m_lin, std::vector<double>& q_lin, bool& errore_lin, bool& ricerca_retta, bool& faster);
+void linear_mode(std::vector<std::vector<double>>& par_lin, std::vector<double>& m_lin, std::vector<double>& q_lin, bool& errore_lin, bool& ricerca_retta, bool& faster, bool complex);
 
 
 

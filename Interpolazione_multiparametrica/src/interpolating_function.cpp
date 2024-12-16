@@ -104,14 +104,72 @@ double f_chi_quadro(std::vector<double> par) {
 }
 
 
-double funzione_interpolante(std::vector<double> par, double x) {
+double funzione_interpolante(std::vector<double> par, double x_i) {
     symbol_table.get_variable("a")->ref() = double(par[0]);
     symbol_table.get_variable("b")->ref() = double(par[1]);
     symbol_table.get_variable("c")->ref() = double(par[2]);
     symbol_table.get_variable("d")->ref() = double(par[3]);
     symbol_table.get_variable("e")->ref() = double(par[4]);
 
-    symbol_table.get_variable("x")->ref() = double(x);
+    symbol_table.get_variable("x")->ref() = double(x_i);
 
     return expression.value();
 }
+
+
+
+
+//cerco il valore di x[i] in funzione di y[i] con bisezione anziché calcolare la funzione inversa che mi è impossibile
+double x_function(std::vector<double> par, int i) {
+    symbol_table.get_variable("a")->ref() = double(par[0]);
+    symbol_table.get_variable("b")->ref() = double(par[1]);
+    symbol_table.get_variable("c")->ref() = double(par[2]);
+    symbol_table.get_variable("d")->ref() = double(par[3]);
+    symbol_table.get_variable("e")->ref() = double(par[4]);
+
+
+
+    // Definizione della lambda function
+    auto f = [i](double x) -> double {
+        symbol_table.get_variable("x")->ref() = x;
+        return y[i] - expression.value(); // ora 'i' è catturato
+    };
+
+    static double min_x = *min_element(x.begin(), x.end());
+    static double max_x = *max_element(x.begin(), x.end());
+
+
+    double a = x[i] - std::fabs(max_x - min_x) * 0.2;       //cerco in un range attorno al valore di x[i] che mi aspetto
+    double b = x[i] + std::fabs(max_x - min_x) * 0.2;
+    double tollerance = std::fabs(x[i]) * 1e-6;
+
+    //cout << a << "\t" << b << "\t" << f(a) << "\t" << f(b) << endl;
+
+    if (f(a) * f(b) >= 0) {
+        throw std::invalid_argument("f(a) e f(b) devono avere segni opposti!");
+    }
+
+    double c; // Punto medio
+    int max_iter = 100;
+    for (int k = 0; k < max_iter; k++) {
+        c = (a + b) / 2; // Calcolo del punto medio
+        double fc = f(c);
+
+        // Controllo se il risultato è sufficientemente vicino a 0 o se l'intervallo è piccolo
+        if (std::fabs(fc) < tollerance || std::fabs(b - a) < tollerance) {
+            return c;
+        }
+
+        // Aggiornamento dell'intervallo
+        if (fc * f(a) < 0) {
+            b = c; // Nuovo intervallo: [a, c]
+        }
+        else {
+            a = c; // Nuovo intervallo: [c, b]
+        }
+    }
+
+    // Se il numero massimo di iterazioni è stato raggiunto
+    throw std::runtime_error("Raggiunto il numero massimo di iterazioni senza convergenza.");
+}
+
