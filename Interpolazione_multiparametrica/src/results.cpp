@@ -13,6 +13,7 @@
 using namespace std;
 
 extern vector<double> x;        //Dati iniziali
+extern double chi_quadro_min;   //Chi quadro minimo
 
 
 // Chiamare nel programma 'Results(par_best, approx);'
@@ -116,6 +117,10 @@ Results::Results(std::vector<double>& par_derived, bool approx_bool, std::ostrea
 
     //Aggiornamento dei parametri all'esterno (se ho migliorato il chi_quadro e quindi i parametri)
     if (f_chi_quadro(par) < f_chi_quadro(par_derived))
+    {
         par_derived = par;      // aggiorno al di fuori
+        chi_quadro_min = chi_min;
+    }
+
 }
 

@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
     bool retta = options["retta"] ? true : false;
     bool plot = options["plot"] ? true : false;
 
-
+    
     //------------RICERCA AUTOMATICA--------------------
 
     if (num_a != 0)
@@ -71,11 +71,23 @@ int main(int argc, char* argv[]) {
     par_best = par;
 
 
-    if (faster && complex) {        //Stampa subito a schermo dei risultati (se in modalità 'complex' oltre che 'faster')
+    if (faster || complex) {        //Stampa subito a schermo dei risultati (se in modalità 'complex' oppure 'faster')
         Results(par_best, approx, std::cout);       // passando 'std::cout' stampo a schermo, altrimenti potrei passargli un ofstream perché scriva su un file ad esempio
     }
+    else       //Altrimenti miglioro i parametri usando il metodo 'discesa_gradiente' (che verrebbe comunque usato nel costruttore di 'Results')
+    {
+        double sensibility = 0.01;
+        vector<double> par_grad = par_best;
+        discesa_gradiente(par_grad, sensibility);
+        double chi_grad = f_chi_quadro(par_grad);
+        if (chi_grad < f_chi_quadro(par_best))
+        {
+            par_best = par_grad;
+            chi_quadro_min = chi_grad;
+        }
+    }
 
-    chi_quadro_min = 1e30;      //resetto il chi quadro minimo modificato dalla bisezione per il miglioramento della ricerca automatica logaritmica, in modo che le bisezioni successive in 'ricoprimento' possano partire anche con valori più alti rispetto all'attuale miglior chi quadro minimo
+    //chi_quadro_min = 1e30;      //resetto il chi quadro minimo modificato dalla bisezione per il miglioramento della ricerca automatica logaritmica, in modo che le bisezioni successive in 'ricoprimento' possano partire anche con valori più alti rispetto all'attuale miglior chi quadro minimo
 
 
     //------------ESECUZIONE PROGRAMMA------------------
@@ -120,7 +132,7 @@ int main(int argc, char* argv[]) {
             
 
             // Generazione dei centri dei parallelepipedi n-dimensionali sulla superficie e stima con bisezione
-            ricoprimento(par, par_def, passo, livello, 0, false, complex);   //I migliori parametri sono in 'par_best'            
+            ricoprimento(par, par_def, passo, livello, 0, false, complex);   //I migliori parametri sono in 'par_best'
             
 
             if (complex)    // l'analisi è presumibilmente lunga e difficile (forse instabile) quindi voglio vedere i parametri migliorati ad ogni fine di livello [-> volendo, aggiungere all'if '&& cicle_programms == 1']
@@ -200,11 +212,23 @@ int main(int argc, char* argv[]) {
             }
         }
 
-
+        // Se non esco allora stampo i risultati (se 'complex' è attivato)
         if (complex)
         {
             //Stampo a schermo i risultati
             Results(par_best, approx, std::cout);
+        }
+        else       //Altrimenti miglioro i parametri usando il metodo 'discesa_gradiente' (che verrebbe comunque usato nel costruttore di 'Results')
+        {
+            double sensibility = 0.01;
+            vector<double> par_grad = par_best;
+            discesa_gradiente(par_grad, sensibility);
+            double chi_grad = f_chi_quadro(par_grad);
+            if (chi_grad < f_chi_quadro(par_best))
+            {
+                par_best = par_grad;
+                chi_quadro_min = chi_grad;
+            }
         }
 
 
@@ -236,13 +260,13 @@ int main(int argc, char* argv[]) {
         discesa_gradiente(par_grad, sensibility);
         if (f_chi_quadro(par_grad) < f_chi_quadro(par_best))
             par_best = par_grad;
-    }
+    }   //verrebbero comunque migliorati da 'writeFile' dato che utilizza 'Results', ma così non sono vincolato a dove utilizzare 'writeFile'
 
 
     //------------SALVATAGGIO DEI RISULTATI-----------------
 
 
-    //stampo i risultati nel file di testo
+    //salvo i risultati nel file di testo
     writeFile(string(argv[1]), x, sigma_x, y, sigma_y, par_best, approx, string(argv[par_best.size() + 2]));
 
 
@@ -257,7 +281,7 @@ int main(int argc, char* argv[]) {
 
         //Calcolo gli errori sui parameteri per capire quanto grandi plottare i grafici sulle distrubuzioni del chi quadro
         vector<double> sigma_par;
-        double chi_piu_uno_val = 1; if (false) chi_piu_uno_val = chi_quadro_piu_uno(par.size());
+        double chi_piu_uno_val = 1; if (false) chi_piu_uno_val = chi_quadro_piu_uno(par.size());    //metto if(true) se non voglio l'errore sul singolo parametro ma calcolato correttamente per più parametri con la funzione 'chi_quadro_piu_uno'
         double range = 0.20;   //cerco l'errore al chi+1 entro +-20% del valore del parametro (in caso fosse più grande la funzione allarga la ricerca)
         for (int i = 0; i < par.size(); i++)
             sigma_par.push_back(chi_piu_uno_par_n(par_best, i, chi_piu_uno_val, range));

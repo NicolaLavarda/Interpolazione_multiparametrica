@@ -18,7 +18,7 @@ void ricerca_auto(vector<double>& par, vector<double>& par_auto, vector<double>&
     static vector<double> sec_best_par = par;
     static double min = -1e10;
     static double max = 1e10;
-    static double min_ordine = 0.1;
+    static double min_ordine = 0.001;
     static bool salita = true;         //Sto scorrendo in "salita" i parametri fino ad arrivare all'ultimo per poi cominciare a tornare indietro per migliorarli uno a uno "all'indietro"
     static int par_size = par.size();
 

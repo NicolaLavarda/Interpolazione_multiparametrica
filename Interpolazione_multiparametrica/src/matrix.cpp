@@ -39,7 +39,7 @@ double second_derivative(vector<double> params, int i, int j) {
 double second_derivative(vector<double> params, int i) {
     //auto min_it = std::min_element(params.begin(), params.end());
     //double h = *min_it * 1e-5;
-    double h = 1e-5; // *fabs(params[i]);
+    double h = 1e-5 * fabs(params[i]);
     vector<double> p1 = params, p2 = params, p3 = params;
 
     p1[i] += h;  // f(p_i + h)
