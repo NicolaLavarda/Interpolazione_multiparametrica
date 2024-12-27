@@ -1,30 +1,21 @@
-#include <file.h>
-#include <input.h>
-#include <interpolating_function.h>
+#include "input.h"
+
+#include "util.h"
+#include "file.h"
+#include "interpolating_function.h"
+
 #include <iostream>
 #include <vector>
 #include <string>
 #include <cstdlib>
 #include <stdexcept>
-#include <regex>
 #include <functional>
 #include <map>
 
 using namespace std;
 
 extern vector<double> x, sigma_x, y, sigma_y;       //Dati iniziali
-extern bool flag;   //considerare o meno anche errori in x
 
-bool isNumber(const string& str) {
-    // Regex per un numero valido (intero o floating point, anche esponenziale)
-    // -> Numeri validi: 
-    //      Numero intero (123, -456)
-    //      Numero decimale (123.45, -0.67, .89)
-    //      Notazione scientifica (1.23e4, -4.56E-7)
-
-    regex numberPattern(R"(^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$)");
-    return regex_match(str, numberPattern);
-}
 
 void input(int argc, char* argv[], vector<double>& par, int& num_a, map<string, bool>& options) {
 
@@ -34,7 +25,6 @@ void input(int argc, char* argv[], vector<double>& par, int& num_a, map<string, 
         exit(EXIT_FAILURE);
     }
     int num_columns = readFile(string(argv[1]), x, sigma_x, y, sigma_y);
-    if (num_columns == 4) flag = false;     //considero errori anche sulle x
     if (num_columns < 0)
         exit(EXIT_FAILURE);
 

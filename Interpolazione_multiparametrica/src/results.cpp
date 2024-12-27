@@ -1,16 +1,15 @@
+#include "results.h"
 #include "chi_square.h"
 #include "matrix.h"
 #include "interpolating_function.h"
-#include "results.h"
-#include "covering.h"
+#include "gradient_descent_algorithm.h"
+
 #include <iostream>
 #include <vector>
 #include <cmath>
 #include <string>
 #include <iomanip>
 #include <fstream>
-
-using namespace std;
 
 extern vector<double> x;        //Dati iniziali
 extern double chi_quadro_min;   //Chi quadro minimo
@@ -20,18 +19,14 @@ extern double chi_quadro_min;   //Chi quadro minimo
 // in modo da creare un oggetto temporaneo che restituisca semplicemente a schermo i risultati
 
 
-Results_base::Results_base(vector<double> par_base, bool approx_bool, std::ostream& output) :
+Results_base::Results_base(std::vector<double> par_base, bool approx_bool, std::ostream& output) :
     par(par_base), chi_min(f_chi_quadro(par)), approx_bool(approx_bool) , out(output)
 {
     double sensibility = 0.01;
-    discesa_gradiente(par_base, sensibility);
-
-    par = par_base;
-    chi_min = f_chi_quadro(par_base);
-
+    gradient_descent_algorithm(par, chi_min, sensibility);
 }
 
-void Results_base::general_result(double valore, double errore, string nome, bool arrotondamento) {
+void Results_base::general_result(double valore, double errore, std::string nome, bool arrotondamento) {
     double err_percentuale = fabs(errore / valore) * 100;
     if (!arrotondamento)
     {
@@ -75,12 +70,12 @@ Result1::Result1()
 Result2::Result2()
     : Results_base(par, approx_bool, out) {
     //Calcolo Hessiana
-    vector<vector<double>> H = hessian(par);
+    std::vector<std::vector<double>> H = hessian(par);
     //out << "Matrice Hessiana: " << endl;
     //stampaMatrice(H, out);
 
     //Calcolo matrice covarianza (inversa dell'hessiana)
-    vector<vector<double>> invH = inversa(H);
+    std::vector<std::vector<double>> invH = inversa(H);
     out << "Matrice di Covarianza: " << endl;
     stampaMatrice(invH, out);
 
@@ -110,16 +105,16 @@ Results::Results(std::vector<double>& par_derived, bool approx_bool, std::ostrea
     out << "chi_quadro = " << setprecision(3) << chi_min << " / " << GDL << endl;
     out << "p_value = " << p_value_val << endl;
     if (p_value_val < 0.05)
-        out << "Possibile sottostima degli errori" << endl;
+        out << "Possible underestimation of errors" << endl;
     if (p_value_val > 0.95)
-        out << "Possibile sovrastima degli errori" << endl;
+        out << "Possible overestimation of errors" << endl;
     out << "----------------------------------------------------------------" << endl << endl;
 
     //Aggiornamento dei parametri all'esterno (se ho migliorato il chi_quadro e quindi i parametri)
     if (f_chi_quadro(par) < f_chi_quadro(par_derived))
     {
-        par_derived = par;      // aggiorno al di fuori
-        chi_quadro_min = chi_min;
+        par_derived = par;          // aggiorno al di fuori
+        chi_quadro_min = chi_min;   //
     }
 
 }

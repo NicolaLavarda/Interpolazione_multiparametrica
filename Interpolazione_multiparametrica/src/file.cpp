@@ -1,6 +1,7 @@
 #include "file.h"
-#include "input.h"      // per accedere alla funzione 'bool isNumber(const string& str)'
+#include "util.h"
 #include "results.h"      // per stampare i risultati sul file dati
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -11,44 +12,6 @@
 #include <cmath> // per std::fabs
 #include <limits> // per std::numeric_limits
 
-// Funzione ausiliaria per verificare la validità dei dati
-bool isDataLine(const std::string& line) {          // utilizza la funzione 'bool isNumber(const string& str)' definita in "input.h"
-    std::istringstream iss(line);
-    std::string word;
-    while (iss >> word) {
-        if (!isNumber(word)) {
-            return false; // La riga non è valida se contiene una parola che non è un numero
-        }
-    }
-    return true; // La riga è valida solo se tutte le parole sono numeri
-}
-
-// Funzione ausiliaria per trovare il minimo ignorando zero
-double findMinIgnoringZero(const std::vector<double>& vec) {
-    // Se il vettore è vuoto, restituisci un valore di default
-    if (vec.empty()) return 0;
-
-    // Trova il minimo assoluto
-    auto minElementIt = std::min_element(vec.begin(), vec.end(), [](double a, double b) {
-        return std::fabs(a) < std::fabs(b);
-        });
-
-    // Se il minimo è zero, trova il successivo minimo
-    if (std::fabs(*minElementIt) == 0.0) {
-        // Cerca il minimo ignorando esattamente zero
-        auto secondMinIt = std::min_element(vec.begin(), vec.end(), [](double a, double b) {
-            if (std::fabs(a) == 0.0) return false; // Ignora zero
-            if (std::fabs(b) == 0.0) return true;  // Priorità a valori diversi da zero
-            return std::fabs(a) < std::fabs(b);
-            });
-
-        // Se non esistono altri elementi, restituisci zero
-        return (secondMinIt != vec.end()) ? *secondMinIt : 0.0;
-    }
-
-    // Restituisci il minimo trovato
-    return *minElementIt;
-}
 
 int readFile(const std::string filePath,
     std::vector<double>& x, std::vector<double>& sigma_x,
@@ -126,7 +89,7 @@ int readFile(const std::string filePath,
 void writeFile(const std::string filePath,
      std::vector<double>& x, std::vector<double>& sigma_x,
      std::vector<double>& y, std::vector<double>& sigma_y,
-    std::vector<double> par_best, bool approx, std::string function) {
+     std::vector<double> par_best, bool approx, std::string function) {
     
     std::ofstream file(filePath);
     if (!file.is_open()) {

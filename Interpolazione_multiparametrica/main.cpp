@@ -8,6 +8,8 @@
 #include "results.h"
 #include "plot.h"
 #include "chi_square.h"
+#include "gradient_descent_algorithm.h"
+#include "util.h"
 
 #include <iostream>
 #include <cstdlib>
@@ -52,6 +54,7 @@ int main(int argc, char* argv[]) {
         {"approx", false},
         {"complex", false},
         {"retta", false},
+        {"save", false},
         {"plot", false}
     };
 
@@ -61,13 +64,14 @@ int main(int argc, char* argv[]) {
     bool approx = options["approx"] ? true : false;
     bool complex = options["complex"] ? true : false;
     bool retta = options["retta"] ? true : false;
+    bool save = options["save"] ? true : false;
     bool plot = options["plot"] ? true : false;
 
     
     //------------RICERCA AUTOMATICA--------------------
 
     if (num_a != 0)
-        parametri_auto(par, complex);
+        parametri_auto(par, chi_quadro_min, complex);
     par_best = par;
 
 
@@ -77,14 +81,7 @@ int main(int argc, char* argv[]) {
     else       //Altrimenti miglioro i parametri usando il metodo 'discesa_gradiente' (che verrebbe comunque usato nel costruttore di 'Results')
     {
         double sensibility = 0.01;
-        vector<double> par_grad = par_best;
-        discesa_gradiente(par_grad, sensibility);
-        double chi_grad = f_chi_quadro(par_grad);
-        if (chi_grad < f_chi_quadro(par_best))
-        {
-            par_best = par_grad;
-            chi_quadro_min = chi_grad;
-        }
+        gradient_descent_algorithm(par_best, chi_quadro_min, sensibility);
     }
 
     //chi_quadro_min = 1e30;      //resetto il chi quadro minimo modificato dalla bisezione per il miglioramento della ricerca automatica logaritmica, in modo che le bisezioni successive in 'ricoprimento' possano partire anche con valori più alti rispetto all'attuale miglior chi quadro minimo
@@ -100,7 +97,7 @@ int main(int argc, char* argv[]) {
     while (true) {  //la condizione di termine è alla fine
         chi_quadro_ciclo_prec = chi_quadro_min;     //da ciclo programma precedente        
 
-        vector<double> par_def(par.size(), 0);   //Vettore parametri definitivi stampati a schermo
+        vector<double> par_def = par_best;   //Vettore parametri definitivi stampati a schermo
         vector<double> passo;                    // Passi diversi per ogni dimensione:
         int livello = 0;                         // Livello iniziale
 
@@ -221,14 +218,7 @@ int main(int argc, char* argv[]) {
         else       //Altrimenti miglioro i parametri usando il metodo 'discesa_gradiente' (che verrebbe comunque usato nel costruttore di 'Results')
         {
             double sensibility = 0.01;
-            vector<double> par_grad = par_best;
-            discesa_gradiente(par_grad, sensibility);
-            double chi_grad = f_chi_quadro(par_grad);
-            if (chi_grad < f_chi_quadro(par_best))
-            {
-                par_best = par_grad;
-                chi_quadro_min = chi_grad;
-            }
+            gradient_descent_algorithm(par_best, chi_quadro_min, sensibility);
         }
 
 
@@ -256,94 +246,29 @@ int main(int argc, char* argv[]) {
     else       //Altrimenti miglioro i parametri usando il metodo 'discesa_gradiente' (che verrebbe comunque usato nel costruttore di 'Results')
     {
         double sensibility = 0.01;
-        vector<double> par_grad = par_best;
-        discesa_gradiente(par_grad, sensibility);
-        if (f_chi_quadro(par_grad) < f_chi_quadro(par_best))
-            par_best = par_grad;
+        gradient_descent_algorithm(par_best, chi_quadro_min, sensibility);
     }   //verrebbero comunque migliorati da 'writeFile' dato che utilizza 'Results', ma così non sono vincolato a dove utilizzare 'writeFile'
 
 
     //------------SALVATAGGIO DEI RISULTATI-----------------
 
 
-    //salvo i risultati nel file di testo
-    writeFile(string(argv[1]), x, sigma_x, y, sigma_y, par_best, approx, string(argv[par_best.size() + 2]));
+    if (save)
+    {
+        //salvo i risultati nel file di testo
+        writeFile(string(argv[1]), x, sigma_x, y, sigma_y, par_best, approx, string(argv[par_best.size() + 2]));
+    }
 
 
     //------------PRODUZIONE DEI GRAFICI--------------------
 
     if (plot)
     {
-        //grafici da plottare
-        TMultiGraph* grafico_dati_interpolazione;
-        vector<TH2F*> grafici_chi2;
-        vector<TGraphErrors*> grafici_residui;
-
-        //Calcolo gli errori sui parameteri per capire quanto grandi plottare i grafici sulle distrubuzioni del chi quadro
-        vector<double> sigma_par;
-        double chi_piu_uno_val = 1; if (false) chi_piu_uno_val = chi_quadro_piu_uno(par.size());    //metto if(true) se non voglio l'errore sul singolo parametro ma calcolato correttamente per più parametri con la funzione 'chi_quadro_piu_uno'
-        double range = 0.20;   //cerco l'errore al chi+1 entro +-20% del valore del parametro (in caso fosse più grande la funzione allarga la ricerca)
-        for (int i = 0; i < par.size(); i++)
-            sigma_par.push_back(chi_piu_uno_par_n(par_best, i, chi_piu_uno_val, range));
-
-
-        //Creazione del grafico con i dati e la funzione interpolante
-        plot_function(grafico_dati_interpolazione, par_best, sigma_par);
-
-        //Creazione dei grafici di distribuzione del chi quadro
-        if (par_best.size() == 2 || par_best.size() == 3)
-            plot_chi_distribution(grafici_chi2, par_best, sigma_par);
-
-        //Creazione dei grafici dei residui (residui x, residui y e residui xy)
-        plot_residui(grafici_residui, par_best);
-
-
-        //vettore che contiene i puntatori a tutti i canvas che mi servono
-        vector<TCanvas*> Canvas_grafici;
-
-        //formato del file in cui salvare i grafici
-        string format = ".png";
-
-        //Nome base di tutti i grafici
-        string base_name = string(argv[1]).erase(string(argv[1]).size() - 4, 4) + "_";      // rimuove '.txt' dal nome del file dati e lo usa per nominare i file dei grafici
-
-        //primo grafico corrispondente al plot dei dati con funzione interpolante
-        Canvas_grafici.push_back(new TCanvas("c1", "c1", 800, 600));
-        Canvas_grafici[0]->cd();
-        grafico_dati_interpolazione->Draw("a");
-        Canvas_grafici[0]->Update();
-        Canvas_grafici[0]->SaveAs((base_name + "c1" + format).c_str());
-
-        //grafici distribuzioni del chi_quadro
-        if (par_best.size() == 2 || par_best.size() == 3)     //solo se ci sono 2 o 3 parametri (altrimenti non ha senso fare questo tipo di grafico)
-        {
-            for (int i = 0; i < grafici_chi2.size(); i++)
-            {
-                string name_canvas = "c" + to_string(i + 2);
-                Canvas_grafici.push_back(new TCanvas(name_canvas.c_str(), name_canvas.c_str(), 800, 600));
-
-                canvas_chi_distribution(Canvas_grafici[i + 1], grafici_chi2[i], par_best, sigma_par, i);    // aggiungo le linee a 1 sigma e salvo i grafici
-
-                string file_name_canvas = base_name + name_canvas + format;
-                Canvas_grafici[i + 1]->SaveAs(file_name_canvas.c_str());
-            }
-        }
-
-        //grafici dei residui
-        if (sigma_y.size() != 0)
-        {
-            for (int i = 0; i < grafici_residui.size(); i++)
-            {
-                string name_canvas = "c" + to_string(i + 2 + grafici_chi2.size());
-                Canvas_grafici.push_back(new TCanvas(name_canvas.c_str(), name_canvas.c_str(), 800, 600));
-
-                canvas_residui(Canvas_grafici[i + 1 + grafici_chi2.size()], grafici_residui[i], i);
-
-                string file_name_canvas = base_name + name_canvas + format;
-                Canvas_grafici[i + 1 + grafici_chi2.size()]->SaveAs(file_name_canvas.c_str());
-            }
-        }
-
+        PlotGenerator generator(par_best, x, sigma_x, y, sigma_y, string(argv[1]));
+        generator.compute_plot_function();
+        generator.compute_plot_chi_distribution();
+        generator.compute_plot_Residuals();
+        generator.save(".png");
     }
 
 

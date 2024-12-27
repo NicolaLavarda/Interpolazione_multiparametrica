@@ -1,4 +1,5 @@
 #include "covering.h"
+#include "bisection_algorithm.h"
 #include "interpolating_function.h"
 #include "matrix.h"
 #include <iostream>
@@ -189,15 +190,7 @@ void bisezione_lin(vector<double>& par, vector<double> m, vector<double> q, int 
         */
 
         //Algoritmo di bisezione
-        vector<double> par_provv_par_lin_passi = par_lin_passi;
-        try
-        {
-            algoritmo_bisezione(par_provv_par_lin_passi, par_lin_passi, passi_lin, 0);
-        }
-        catch (const std::runtime_error& e) {
-            par_lin_passi = par_provv_par_lin_passi;            // la funzione di bisezione poteva modificare solo 'par_lin_passi' e in caso di errore lo ripristino
-            std::cerr << "Catturata std::runtime_error: " << e.what() << endl;
-        }
+        bisection_algorithm(par_lin_passi, passi_lin, min_chi_lin_passi);
 
         /*
         cout << endl;
@@ -208,12 +201,7 @@ void bisezione_lin(vector<double>& par, vector<double> m, vector<double> q, int 
         cout << "-------" << endl;
         */
 
-        double sum_chi_lin = f_chi_quadro(par_lin_passi);
-        if (sum_chi_lin < min_chi_lin_passi)
-        {
-            min_chi_lin_passi = sum_chi_lin;
-            par_lin_finali = par_lin_passi;
-        }
+        par_lin_finali = par_lin_passi;
     }
     par = par_lin_finali;
 

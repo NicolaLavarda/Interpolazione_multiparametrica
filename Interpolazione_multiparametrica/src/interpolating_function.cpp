@@ -1,4 +1,7 @@
 #include "exprtk.hpp"
+
+#include "util.h"
+
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -10,7 +13,6 @@
 //using namespace std;
 
 extern std::vector<double> x, sigma_x, y, sigma_y;
-bool flag = true;
 
 typedef exprtk::symbol_table<double> symbol_table_t;
 typedef exprtk::expression<double> expression_t;
@@ -48,10 +50,8 @@ void setup_expression(std::string espressione_interpolante) {
 
 
 
-
-
 double dfdx(int i) {        // O(h^4)
-    static double h = x.back() * 1e-6;
+    static double h = findMinIgnoringZero(x) * 1e-6;
     //double val_i = expression.value();
     symbol_table.get_variable("x")->ref() = double(x[i] + 2 * h);
     double val_ip2 = expression.value();
@@ -80,8 +80,8 @@ double f_chi_quadro(std::vector<double> par) {
     symbol_table.get_variable("e")->ref() = double(par[4]);
 
     double sum_chi = 0;
-
-    if (flag)
+    static bool err_x = sigma_x.empty();
+    if (err_x)
     {
         for (int i = 0; i < x.size(); i++)
         {

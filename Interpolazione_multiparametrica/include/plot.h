@@ -2,24 +2,66 @@
 #define PLOT_H
 
 #include <vector>
+#include <string>
+
 #include <TMultiGraph.h>
 #include <TGraphErrors.h>
 #include <TH2F.h>
 #include <TCanvas.h>
 
 
-std::vector<std::vector<double>> calcolo_matrice_chi_quadri(std::vector<double> par, std::vector<double> sigma_par, double num_sigma, double punti_per_parametro, int primo_par, int secondo_par);
+class PlotGenerator {
+public:
+
+    PlotGenerator(std::vector<double> par, std::vector<double> x, std::vector<double> sigma_x, std::vector<double> y, std::vector<double> sigma_y, std::string file_name);
+
+    void compute_plot_function();
+
+    void compute_plot_chi_distribution();
+
+    void compute_plot_Residuals();
+
+    void save(std::string format_file);
+
+private:
+
+    std::vector<std::vector<double>> calcolo_matrice_chi_quadri(std::vector<double> par, std::vector<double> sigma_par, double num_sigma, double punti_per_parametro, int primo_par, int secondo_par);
+
+    void plot_function(TMultiGraph*& grafico_dati_interpolazione, std::vector<double> par);
+
+    void plot_chi_distribution(std::vector<TH2F*>& grafici_chi2, std::vector<double> par, std::vector<double> sigma_par);
+
+    void plot_residui(std::vector<TGraphErrors*>& grafici_residui, std::vector<double> par);
+
+    void canvas_chi_distribution(TCanvas*& c, TH2F*& grafico_chi2, std::vector<double> par, std::vector<double> sigma_par, int num_coppia);
+
+    void canvas_residui(TCanvas*& c, TGraphErrors*& grafico_residui, int num_grafico);
+
+    bool isValidFormat(const std::string& extension);
+
+    // Dati inizializzati dal costruttore
+    std::vector<double> par;
+    std::vector<double> x;
+    std::vector<double> y;
+    std::vector<double> sigma_x;
+    std::vector<double> sigma_y;
+
+    // Grafici da plottare
+    TMultiGraph* grafico_dati_interpolazione;
+    std::vector<TH2F*> grafici_chi2;
+    std::vector<TGraphErrors*> grafici_residui;
+
+    // Vettore che contiene i puntatori a tutti i canvas che mi servono
+    std::vector<TCanvas*> Canvas_grafici;
+
+    //formato del file in cui salvare i grafici
+    std::string format = ".png";
+
+    //Nome base di tutti i grafici
+    std::string base_name;
+
+};
 
 
-void plot_function(TMultiGraph*& grafico_dati_interpolazione, std::vector<double> par, std::vector<double> sigma_par);
-
-
-void plot_chi_distribution(std::vector<TH2F*>& grafici_chi2, std::vector<double> par, std::vector<double> sigma_par);
-
-void plot_residui(std::vector<TGraphErrors*>& grafici_residui, std::vector<double> par);
-
-void canvas_chi_distribution(TCanvas*& c, TH2F*& grafico_chi2, std::vector<double> par, std::vector<double> sigma_par, int num_coppia);
-
-void canvas_residui(TCanvas*& c, TGraphErrors*& grafico_residui, int num_grafico);
 
 #endif

@@ -1,10 +1,13 @@
 #include "plot.h"
 #include "interpolating_function.h"
+#include "chi_square.h"
+
 #include <iostream>
 #include <vector>
 #include <algorithm>
 #include <string>
 #include <cmath>
+#include <set>
 
 #include <TCanvas.h>
 #include <TGraph.h>
@@ -20,14 +23,88 @@
 #include <TString.h>    // Per usare Form()
 
 
-
 using namespace std;
 
-extern vector<double> x, y, sigma_x, sigma_y;        //Dati iniziali
+
+PlotGenerator::PlotGenerator(vector<double> par, vector<double> x, vector<double> sigma_x, vector<double> y, vector<double> sigma_y, string file_name):
+    par(par), x(x), y(y), sigma_x(sigma_x), sigma_y(sigma_y)
+{
+    base_name = file_name.erase(file_name.size() - 4, 4) + "_";      // rimuove '.txt' dal nome del file dati e lo usa per nominare i file dei grafici
+}
 
 
+void PlotGenerator::compute_plot_function() {
 
-vector<vector<double>> calcolo_matrice_chi_quadri(vector<double> par, vector<double> sigma_par,double num_sigma, double punti_per_parametro, int primo_par, int secondo_par) {
+    //Creazione del grafico con i dati e la funzione interpolante
+    plot_function(grafico_dati_interpolazione, par);
+
+    //primo grafico corrispondente al plot dei dati con funzione interpolante
+    Canvas_grafici.push_back(new TCanvas("c1", "c1", 800, 600));
+    Canvas_grafici[0]->cd();
+    grafico_dati_interpolazione->Draw("a");
+    Canvas_grafici[0]->Update();
+}
+
+void PlotGenerator::compute_plot_chi_distribution() {
+
+    //Calcolo gli errori sui parameteri per capire quanto grandi plottare i grafici sulle distrubuzioni del chi quadro
+    vector<double> sigma_par;
+    double chi_piu_uno_val = 1; if (false) chi_piu_uno_val = chi_quadro_piu_uno(par.size());    //metto if(true) se non voglio l'errore sul singolo parametro ma calcolato correttamente per più parametri con la funzione 'chi_quadro_piu_uno'
+    double range = 0.20;   //cerco l'errore al chi+1 entro +-20% del valore del parametro (in caso fosse più grande la funzione allarga la ricerca)
+    for (int i = 0; i < par.size(); i++)
+        sigma_par.push_back(chi_piu_uno_par_n(par, i, chi_piu_uno_val, range));
+
+    //Creazione dei grafici di distribuzione del chi quadro
+    if (par.size() == 2 || par.size() == 3)
+        plot_chi_distribution(grafici_chi2, par, sigma_par);
+
+    //grafici distribuzioni del chi_quadro
+    if (par.size() == 2 || par.size() == 3)     //solo se ci sono 2 o 3 parametri (altrimenti non ha senso fare questo tipo di grafico)
+    {
+        for (int i = 0; i < grafici_chi2.size(); i++)
+        {
+            string name_canvas = "c" + to_string(i + 2);
+            Canvas_grafici.push_back(new TCanvas(name_canvas.c_str(), name_canvas.c_str(), 800, 600));
+
+            canvas_chi_distribution(Canvas_grafici[i + 1], grafici_chi2[i], par, sigma_par, i);    // aggiungo le linee a 1 sigma e salvo i grafici
+        }
+    }
+}
+
+void PlotGenerator::compute_plot_Residuals() {
+
+    //Creazione dei grafici dei residui (residui x, residui y e residui xy)
+    plot_residui(grafici_residui, par);
+
+    //grafici dei residui
+    if (sigma_y.size() != 0)
+    {
+        for (int i = 0; i < grafici_residui.size(); i++)
+        {
+            string name_canvas = "c" + to_string(i + 2 + grafici_chi2.size());
+            Canvas_grafici.push_back(new TCanvas(name_canvas.c_str(), name_canvas.c_str(), 800, 600));
+
+            canvas_residui(Canvas_grafici[i + 1 + grafici_chi2.size()], grafici_residui[i], i);
+        }
+    }
+}
+
+void PlotGenerator::save(string format_file) {
+
+    if (isValidFormat(format_file))
+        format = format_file;           //Altrimenti 'format' è di default ".png"
+
+    for (int i = 0; i < Canvas_grafici.size(); i++)
+    {
+        string file_name_canvas = base_name + "c" + to_string(i + 1) + format;
+        Canvas_grafici[i]->SaveAs(file_name_canvas.c_str());
+    }
+
+}
+
+
+//Creazione griglia valori chi_quadro al variare dei parametri (mappe colore)
+vector<vector<double>> PlotGenerator::calcolo_matrice_chi_quadri(vector<double> par, vector<double> sigma_par,double num_sigma, double punti_per_parametro, int primo_par, int secondo_par) {
 
     vector<double> par_i, par_f, passo_par;
 
@@ -62,7 +139,7 @@ vector<vector<double>> calcolo_matrice_chi_quadri(vector<double> par, vector<dou
 
 
 //Grafico dati e funzione interpolante
-void plot_function(TMultiGraph*& grafico_dati_interpolazione, vector<double> par, vector<double> sigma_par) {
+void PlotGenerator::plot_function(TMultiGraph*& grafico_dati_interpolazione, vector<double> par) {
 
     gStyle->SetOptStat(0);
     TGraphErrors* dati_plot = new TGraphErrors();
@@ -78,7 +155,7 @@ void plot_function(TMultiGraph*& grafico_dati_interpolazione, vector<double> par
     dati_plot->SetTitle("Grafico interpolazione");
     dati_plot->GetXaxis()->SetTitle("asse x");
     dati_plot->GetYaxis()->SetTitle("asse y");
-    dati_plot->SetMarkerStyle(22);
+    dati_plot->SetMarkerStyle(8);
     dati_plot->SetMarkerSize(0.7);
     dati_plot->SetLineWidth(1);
 
@@ -105,19 +182,22 @@ void plot_function(TMultiGraph*& grafico_dati_interpolazione, vector<double> par
         funzione_interpolante_dati->SetPoint(i, vecx_funz_interpolante[i], funzione_interpolante(par, vecx_funz_interpolante[i]));        // 'funzione_interpolante(std::vector<double> par, double x)' funzione definita in #include "interpolating_function.h"
     }
 
+    funzione_interpolante_dati->SetLineColor(kRed);
+    funzione_interpolante_dati->SetLineWidth(1);
+
     auto legend = new TLegend(0.7, 0.85, 0.95, 0.95);
     legend->AddEntry(dati_plot, "Dati sperimentali", "p");
     legend->AddEntry(funzione_interpolante_dati, "fit globale", "l");
 
 
     grafico_dati_interpolazione = new TMultiGraph("Grafico interpolazione", "Grafico interpolazione");
-    grafico_dati_interpolazione->Add(dati_plot, "p");     //mette i punti dei dati con le loro barre d'errore
     grafico_dati_interpolazione->Add(funzione_interpolante_dati, "c");    //mette la funzione interpolante con i dati trovati
+    grafico_dati_interpolazione->Add(dati_plot, "p");     //mette i punti dei dati con le loro barre d'errore
 
 }
 
 //Grafici distribuzioni chi quadro
-void plot_chi_distribution(vector<TH2F*>& grafici_chi2, vector<double> par, vector<double> sigma_par) {
+void PlotGenerator::plot_chi_distribution(vector<TH2F*>& grafici_chi2, vector<double> par, vector<double> sigma_par) {
 
     if (par.size() < 4)     //solo se ci sono 2 o 3 parametri (altrimenti non ha senso fare questo tipo di grafico)
     {
@@ -180,7 +260,7 @@ void plot_chi_distribution(vector<TH2F*>& grafici_chi2, vector<double> par, vect
 }
 
 //Grafici dei residui
-void plot_residui(vector<TGraphErrors*>& grafici_residui, vector<double> par) {
+void PlotGenerator::plot_residui(vector<TGraphErrors*>& grafici_residui, vector<double> par) {
 
     if (sigma_y.size() == 0) return;
 
@@ -263,7 +343,7 @@ void plot_residui(vector<TGraphErrors*>& grafici_residui, vector<double> par) {
 
 
 //Creazione dei canvas dei grafici delle distribuzioni del chi quadro
-void canvas_chi_distribution(TCanvas*& c, TH2F*& grafico_chi2, vector<double> par, vector<double> sigma_par, int num_coppia) {
+void PlotGenerator::canvas_chi_distribution(TCanvas*& c, TH2F*& grafico_chi2, vector<double> par, vector<double> sigma_par, int num_coppia) {
 
     c->cd();
 
@@ -324,7 +404,7 @@ void canvas_chi_distribution(TCanvas*& c, TH2F*& grafico_chi2, vector<double> pa
 }
 
 //Creazione dei canvas dei grafici dei residui
-void canvas_residui(TCanvas*& c, TGraphErrors*& grafico_residui, int num_grafico) {
+void PlotGenerator::canvas_residui(TCanvas*& c, TGraphErrors*& grafico_residui, int num_grafico) {
 
     c->cd();
 
@@ -363,4 +443,16 @@ void canvas_residui(TCanvas*& c, TGraphErrors*& grafico_residui, int num_grafico
     if (num_grafico == 2) line_y->Draw("same");
 
     c->Update();
+}
+
+
+// Funzione per validare un'estensione
+bool PlotGenerator::isValidFormat(const std::string& extension) {
+    // Lista delle estensioni supportate da ROOT
+    static const std::set<std::string> validExtensions = {
+        ".pdf", ".png", ".jpg", ".jpeg", ".eps", ".svg", ".root", ".C", ".gif", ".tiff"
+    };
+
+    // Controlla se l'estensione è nella lista di quelle valide
+    return validExtensions.find(extension) != validExtensions.end();
 }

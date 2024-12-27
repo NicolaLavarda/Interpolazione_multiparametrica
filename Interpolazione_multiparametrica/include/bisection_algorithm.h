@@ -1,0 +1,29 @@
+#ifndef BISECTION_ALGORITHM_H
+#define BISECTION_ALGORITHM_H
+
+#include <vector>
+
+// Chiamare nel programma 'Results(par_best, approx);'
+// in modo da creare un oggetto temporaneo che restituisca semplicemente a schermo i risultati
+
+
+// Classe Base
+class bisection_algorithm {
+public:
+
+    bisection_algorithm(std::vector<double>& par, const std::vector<double> step, double& chi_quadro_min);
+
+private:
+
+    void bisection(std::vector<double> par, std::vector<double>& par_def, const std::vector<double> passo, int n);
+
+
+
+    std::vector<double> par_base;
+    std::vector<double> step;
+    double chi_min;
+};
+
+
+
+#endif

@@ -1,13 +1,12 @@
 #include "automatic_research.h"
-#include "covering.h"
+#include "gradient_descent_algorithm.h"
 #include "interpolating_function.h"
+
 #include <iostream>
 #include <vector>
 #include <algorithm>
 
 using namespace std;
-
-extern double chi_quadro_min;       //Chi quadro minimo assoluto
 
 
 //Ricerca automatica logaritmica
@@ -102,7 +101,7 @@ void ricerca_auto(vector<double>& par, vector<double>& par_auto, vector<double>&
 }
 
 
-void parametri_auto(vector<double>& par, bool output) {
+void parametri_auto(vector<double>& par, double& chi_quadro_min, bool output) {
 
     //Ricerca automatica logaritmica
     vector<double> par_auto = par;
@@ -124,15 +123,20 @@ void parametri_auto(vector<double>& par, bool output) {
     vector<double> passo_i1;
     vector<double> passo_i2;
 
-    vector<double> par_i1(par.size(), 0);
-    vector<double> par_i2(par.size(), 0);
+    vector<double> par_i1 = par;        //le due alternative
+    vector<double> par_i2 = par_auto;   //
 
-    algoritmo_bisezione(par, par_i1, passo_i1, 0);
-    algoritmo_bisezione(par_auto, par_i2, passo_i1, 0);
+    //algoritmo_bisezione(par_i1, par_i1, passo_i1, 0);
+    double sensibility0 = 1;    // variazione iniziale del 100%
+    gradient_descent_algorithm(par_i1, chi_quadro_min, sensibility0);    //Miglioro 'par_i1' con metodo 'discesa_gradiente'
 
-    par = (f_chi_quadro(par_i1) < f_chi_quadro(par_i2)) ? par_i1 : par_i2;
+    //algoritmo_bisezione(par_i2, par_i2, passo_i1, 0);
+    double sensibility1 = 1;    // variazione iniziale del 100%
+    gradient_descent_algorithm(par_i2, chi_quadro_min, sensibility1);    //Miglioro 'par_i2' con metodo 'discesa_gradiente'
 
+    par = (f_chi_quadro(par_i1) < f_chi_quadro(par_i2)) ? par_i1 : par_i2;      //Controllo se è meglio 'par_i1' o 'par_i2'
     chi_quadro_min = f_chi_quadro(par);
+
     if (output)
     {
         cout << "Parametri automatici iniziali migliorati:" << endl;
