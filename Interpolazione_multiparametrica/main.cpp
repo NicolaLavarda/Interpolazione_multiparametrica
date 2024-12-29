@@ -90,121 +90,53 @@ int main(int argc, char* argv[]) {
     //------------ESECUZIONE PROGRAMMA------------------
 
     //eseguo la "main" (intendo la parte vera e propria del programma) fino ad una effettiva variazione del chi quadro minore del per mille (0.001) -> condizione presente alla fine del ciclo while
-    double chi_quadro_ciclo_prec = 0;
+    
     cicle_programms = 1;
     bool errore_lin = false;
 
     while (true) {  //la condizione di termine è alla fine
-        chi_quadro_ciclo_prec = chi_quadro_min;     //da ciclo programma precedente        
-
-        vector<double> par_def = par_best;   //Vettore parametri definitivi stampati a schermo
-        vector<double> passo;                    // Passi diversi per ogni dimensione:
-        int livello = 0;                         // Livello iniziale
-
-        double spostamento = 0.1;       // es. spostamento=0.1 allora il primo cubo n-dim di ricoprimento è largo il 10% di ogni parametro nelle rispettive direzioni
-        if (cicle_programms > 2) spostamento /= cicle_programms * 2;        //aumentando fino ad un '*2' ('spostamento /= cicle_programms * 2') il tempo d'esecuzione è sempre migliorato, ma da valutare bene come ottimizzare il parametro '*2'
         
-        for (int i = 0; i < par.size(); i++)
-            passo.push_back(spostamento * ( (fabs(par[i]) > 0.5) ? fabs(par[i]) : 2 ) );        //spostamento * 2 se miniore di 0.5 in modo che il rispettivo 'passo' sia pari a 1 (che nella funzione diventerà un range semilargo 0.5)
-
-        par_matrix.push_back(par_best);     //Faccio arrivare i par_best di ogni intero ciclo di programma alla funzione 'ricoprimento' come utimo vettore del vettore di vettori par_matrix
-
         //Blocco inizializzazioni per ricerca lungo retta -> metodo della retta (molto più efficente dei "ricoprimenti" quando sono distante dalla soluzione)
         vector<vector<double>> par_lin;              //parametri da interpolare linearmente
         vector<double> m_lin(par.size() - 1, 0);     //coefficienti angolari per parametri da interpolare linearmente
         vector<double> q_lin(par.size() - 1, 0);     //intercette per parametri da interpolare linearmente
 
+        covering c_generator(par_best, chi_quadro_min, cicle_programms, complex, faster);
+
         //Calcolo parametri
         int cicle = 1;      //primo ciclo di livelli
         for (int k = 0; k < 15; k++) {
 
-            if (!complex)
-            {
-                cout << "\rNumber of program iterations: " << cicle_programms << flush;
-            }
-            else
-            {
-                cout << endl << "Livello " << cicle << "." << livello << ":";
-            }
+            //Stamapa a schermo a che ciclo di programma si è arrivati
+            c_generator.status(cicle, k);
             
-
             // Generazione dei centri dei parallelepipedi n-dimensionali sulla superficie e stima con bisezione
-            ricoprimento(par, par_def, passo, livello, 0, false, complex);   //I migliori parametri sono in 'par_best'
-            
+            c_generator.ricoprimento(par, par_best, 0, false);   //I migliori parametri sono in 'par_best'
+
 
             if (complex)    // l'analisi è presumibilmente lunga e difficile (forse instabile) quindi voglio vedere i parametri migliorati ad ogni fine di livello [-> volendo, aggiungere all'if '&& cicle_programms == 1']
             {
                 cout << "\t -> ";
                 for (int k = 0; k < par.size(); k++)
                     cout << par_best[k] << "\t";
-                //cout << "--->" << f_chi_quadro(par_best);
             }
 
 
-            //Modalità con ricerca lungo una retta di miglioramento dei parametri
+            //Modalità con ricerca lungo una retta di miglioramento dei parametri (utile se sono molto distante)
             bool ricerca_retta = false;     //Cambia in 'true' se il metodo qui sotto della ricerca lungo la retta funziona
             if (par.size() == 1) errore_lin = true;
             if ((!errore_lin || retta) && cicle == 1)       // se da input metto retta=true vuol dire che voglio che venga sempre usato quando possibile il metodo della retta
                 linear_mode(par_lin, m_lin, q_lin, errore_lin, ricerca_retta, faster, complex);      //fin tanto che non si hanno almeno un tot di punti prefissati li si raccolgono, poi 'linear_mode' continua effettivamente cercando di migliorare i parametri
             
 
+            c_generator.next();
 
-            // Per passare al cilo successivo e ripartire dal livello 0
-            bool fast = false;
-            if (faster || livello > 4)       //dal livello 5 in poi basta che un solo livello non migliori il chi quadro per passare al ciclo successivo
-                fast = true;        //prima c'era 'livelli[livello - 1] = 0;'
+            // Motivi di uscita dal ciclo 'for'
+            if (c_generator.exit(ricerca_retta)) break;
 
-            
-            //Passaggio al ciclo successivo, altrimenti semplicemente passaggio al livello successivo
-            if ((livello > 1) && (livelli[livello] == 0 && (livelli[livello - 1] == 0 || fast)))      //Per livelli 2, 3 e 4 è necessario che almeno gli ultimi due livelli non migliorino il chi quadro per passare al ciclo successivo
-            {
-                livello = 0;
-                if (cicle > 2)               //Per il secondo ciclo rimane 'spostamento' uguale al primo ciclo
-                    spostamento /= 4;
-                par = par_best;
-                
-                livelli.clear();
-                livelli.assign(100, 0);     //livelli viene ripristinato
-
-                for (int i = 0; i < par.size(); i++)
-                    passo[i] = (fabs(par[i]) > 0.5) ? fabs(par[i] * spostamento) : fabs(2 * spostamento);   //Riduco 'spostamento' per i livelli successivi (all'interno dello stesso 'cicle_programme')
-                cicle++;
-            }
-            else
-                ++livello;      // Espansione del ricoprimento ('spostamento' ovviamente rimane uguale, ricopro con cubi n-dimensionali di uguali dimensioni in uno stesso ciclo di ricoprimento)
-
-
-
-
-
-            // MOTIVI DI USCITA DAL CICLO FOR
-
-            //Per la ricerca lungo la retta
-            if (ricerca_retta)
-            {
-                //cout << endl << "esco per la retta" << endl;
-                break;
-            }
-
-            //Solo se sono dopo il quarto livello (oppure dopo il secondo se non sono più al primo ciclo), allora posso terminare il 'cicle_programme' se il chi_quadro è migliorato più del per mille (in ogni caso questo non basta per terminare l'intero programma)
-            if (((cicle > 1) || (livello > 4)) && ((chi_quadro.size() > 1) && (livello > 2)))
-            {
-                double check = (chi_quadro[chi_quadro.size() - 2] - chi_quadro[chi_quadro.size() - 1]) - chi_quadro[chi_quadro.size() - 1] * 0.001;
-                if (check < 0) {
-                    //cout << endl << "esco chi quadro < 0.001" << endl;
-                    break;
-                }
-            }
-
-            //Se è stato migliorato solo una volta e sono già al 6° tentativo tanto vale uscire
-            if (chi_quadro.size() == 1 && k > 5) {
-                //cout << endl << "esco al sesto tentativo" << endl;
-                break;
-            }
 
             //Se non è migliorato nemmeno una volta il chi quadro e sono al 7° tentativo tanto vale terminare tutto il programma
-            if (chi_quadro.size() == 0 && k > 6) {
-                //cout << endl << "Non e' possibile migliorare ulteriormente il chi quadro" << endl;
+            if (c_generator.get_chi_quadro_size() == 0 && k > 6) {
                 goto end_loops;     //torna nella main principale uscendo anche dal while
             }
         }
@@ -221,18 +153,11 @@ int main(int argc, char* argv[]) {
             gradient_descent_algorithm(par_best, chi_quadro_min, sensibility);
         }
 
+        // riaggiorno parametri, libero 'chi_quadro' e 'livelli', e passo al ciclo di programma successivo [...] poi in caso esco e termino tutto
+        if (c_generator.end()) break;
 
-        //riaggiorno parametri, libero 'chi_quadro' e 'livelli', e passo al ciclo di programma successivo
-        par = par_best;
-        livelli.clear();            //livelli viene ripristinato
-        livelli.assign(100, 0);     //
-        chi_quadro.clear();         //chi_quadro viene ripristinato
         cicle_programms++;
-        
 
-        //Termino l'intero programma se il chi quadro subisce effettivamente un miglioramento minore del per mille (0.001)
-        if (cicle_programms > 1 && (chi_quadro_ciclo_prec != chi_quadro_min && chi_quadro_ciclo_prec - chi_quadro_min < 0.001))
-            break;
     }
     end_loops:  //arrivo qui se ho trovato 'goto end_loops;' per uscire dal miglioramento dei parametri non riuscendo a migliorare meglio del per mille il chi quadro
 
@@ -251,7 +176,6 @@ int main(int argc, char* argv[]) {
 
 
     //------------SALVATAGGIO DEI RISULTATI-----------------
-
 
     if (save)
     {

@@ -7,7 +7,6 @@
 // in modo da creare un oggetto temporaneo che restituisca semplicemente a schermo i risultati
 
 
-// Classe Base
 class bisection_algorithm {
 public:
 
