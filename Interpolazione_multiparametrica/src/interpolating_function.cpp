@@ -10,8 +10,6 @@
 #include <algorithm>
 #include <stdexcept>
 
-//using namespace std;
-
 extern std::vector<double> x, sigma_x, y, sigma_y;
 
 typedef exprtk::symbol_table<double> symbol_table_t;

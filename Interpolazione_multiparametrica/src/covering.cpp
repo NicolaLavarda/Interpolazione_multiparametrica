@@ -62,14 +62,7 @@ void covering::ricoprimento(vector<double>& par, vector<double>& par_best, int d
             //cout << par_best[0] << "\t" << par_best[1] << "\t" << sum_chi_p << endl;
 
             if (sum_chi_p < chi_quadro_min) {
-                /*
-                    string output_testo = "Optimized parameters: \n";
-                    for (int p = 0; p < par.size(); p++) {
-                        output_testo += "par" + to_string(p) + ":\t" + to_string(par_best[p]) + "\n";
-                    }
-                    output_testo += "chi_quadro = " + to_string(sum_chi_p) + "\n";
-                    cout << output_testo << endl;           //output valori
-                */
+
                 if (output)
                     cout << "\t" << sum_chi_p << " ";
 
@@ -147,6 +140,11 @@ bool covering::exit(bool ricerca_retta) {
         return true;
     }
 
+    //Se non è migliorato nemmeno una volta il chi quadro e sono al 7° tentativo tanto vale terminare tutto il programma
+    if (chi_quadro.size() == 0 && k > 6) {
+        return true;     //torna nella main principale uscendo anche dal while
+    }   // con la stessa condizione esco anche con 'end()' [*]
+
     return false;
 }
 
@@ -166,6 +164,12 @@ bool covering::end() {
     if (cicle_programms > 1 && (chi_quadro_ciclo_prec != chi_quadro_min && chi_quadro_ciclo_prec - chi_quadro_min < 0.001))
         return true;
 
+    // [*] Se non è migliorato nemmeno una volta il chi quadro e ero al 7° tentativo tanto vale terminare tutto il programma
+    if (chi_quadro.size() == 0 && k > 6) {
+        return true;
+    }
+
     return false;
 
 }
+

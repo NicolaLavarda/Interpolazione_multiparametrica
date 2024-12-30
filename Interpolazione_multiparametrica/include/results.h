@@ -39,7 +39,7 @@ public:
 // Classe derivata, eredita da entrambe le classi intermedie
 class Results : public Result1, public Result2 {
 public:
-    Results(std::vector<double>& par_derived, bool approx_bool, std::ostream& output);
+    Results(std::vector<double> par_derived, bool approx_bool, std::ostream& output);
     //chiama in ordine 'Results_base', 'Result1' e 'Result2' ed infine qui dentro al costruttore di 'Results'
     // 
     // Chiamare nel programma 'Results(par_best, approx);'

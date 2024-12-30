@@ -1,3 +1,4 @@
+#include "linear_mode.h"
 #include "covering.h"
 #include "bisection_algorithm.h"
 #include "interpolating_function.h"
@@ -13,11 +14,155 @@
 
 using namespace std;
 
-extern double chi_quadro_min;                                    //Chi quadro minimo assoluto
-extern vector<double> par_best;                                  //Attuali migliori parametri
+
+linear_mode::linear_mode(vector<double> par, bool faster, bool complex):
+    faster(faster), complex(complex)
+{
+    vector<double> vec(par.size() - 1, 0);
+    m_lin = vec;
+    q_lin = vec;
+
+}
 
 
-void linearFit(vector<double>& x, vector<double>& y, double& m, double& q) {
+//funzione effettiva da usare nella main
+void linear_mode::research(vector<double> par_in, bool& errore_lin, bool& ricerca_retta) {
+
+    par_best = par_in;
+
+    //Modalità con interpolazione lineare dei parametri migliorati i primi 3 livelli
+    int num_point = 3;  //3 punti per l'interpolazione della retta
+    if (faster)
+        num_point = 2;  //2 punti per l'interpolazione della retta
+
+    //Riempio il vettore con i parametri migliori di ogni livello per poi interpolarli con una retta n-dimensionale
+    if (par_lin.size() <= num_point) {
+        if (par_lin.empty())
+            par_lin.push_back(par_best);
+        else
+        {
+            if (par_best != par_lin.back())
+                par_lin.push_back(par_best);
+        }
+        /*
+        cout << endl << "->";
+        for (int i = 0; i < par_best.size(); i++)
+            cout << "\t" << "->" << par_best[i];
+        cout << endl;
+        */
+    }
+
+    //Se è stato raggiunto il numero di punti prefissati inizio col metodo della retta
+    if (par_lin.size() == num_point) {
+
+        try    //faccio la trasposta di 'par_lin'
+        {
+            par_lin = trasposta(par_lin);
+            //cout << "Matrice parametri da interpolare linearmente:" << endl;
+            //stampaMatrice(par_lin);
+
+        }
+        catch (const out_of_range& e)
+        {
+            errore_lin = true;              //Motivo per non usare mai più il metodo della retta
+            cerr << "errore trasposta in 'linear_mode': " << e.what() << endl;
+        }
+        catch (const invalid_argument& e)
+        {
+            errore_lin = true;              //Motivo per non usare mai più il metodo della retta
+            cerr << "errore trasposta in 'linear_mode': " << e.what() << endl;
+        }
+
+
+        for (int i = 1; i < par_best.size(); i++)   //fa tutto in funzione di par0 (vedo dopo in funzione di quale è meglio fare, ma da qualche parte devo pur iniziare per capire quali parametri in funzione di quale è meglio procedere)
+        {
+            try {
+                linearFit(par_lin[0], par_lin[i], m_lin[i - 1], q_lin[i - 1]);
+            }
+            catch (const invalid_argument& e) {
+                errore_lin = true;              //Motivo per non usare mai più il metodo della retta
+                cerr << "Errore in linearFit: " << e.what() << endl;
+                return;
+            }
+            catch (const runtime_error& e) {
+                errore_lin = true;              //Motivo per non usare mai più il metodo della retta
+                cerr << "Errore in linearFit: " << e.what() << endl;
+                return;
+            }
+        }
+
+        //cerco di capire qual è il parametro peggiore e in funzione di quello ricalcolo i q ed m
+        int n_worst = 0;
+        try
+        {
+            n_worst = worst_parameter(m_lin, q_lin);       //ora 'm_lin' e 'q_lin' hanno la stessa dimensione di 'par_lin'
+        }
+        catch (const out_of_range& e)
+        {
+            errore_lin = true;
+            cerr << "metodo retta (worst_parameter) out_of_range: " << e.what() << endl;
+            return;
+        }
+        //cout << endl << "--> " << n_worst << " <--" << endl;
+
+        /*
+        cout << endl << "gli m sono: " << endl;
+        for (int k = 0; k < m_lin.size(); k++)
+            cout << m_lin[k] << "\t";
+        cout << endl;
+
+        cout << endl << "i q sono: " << endl;
+        for (int k = 0; k < q_lin.size(); k++)
+            cout << q_lin[k] << "\t";
+        cout << endl;
+        */
+
+
+
+        vector<double> par_bisez_lin = par_best;
+        try
+        {
+            bisezione_lin(par_bisez_lin, m_lin, q_lin, n_worst);
+
+        }
+        catch (const runtime_error& e)
+        {
+            errore_lin = true;              //Motivo per non usare mai più il metodo della retta
+            cerr << "errore in 'linear_mode': " << e.what() << endl;
+            return;
+        }
+
+        double chi_lin_fin = f_chi_quadro(par_bisez_lin);
+
+        if (chi_lin_fin < f_chi_quadro(par_best))
+        {
+            par_best = par_bisez_lin;
+            chi_quadro_min = chi_lin_fin;
+            ricerca_retta = true;
+
+            if (complex)
+            {
+                cout << endl << "Parametri bisez_lin migliorati rispetto a par" << n_worst << ":" << endl;
+                for (int k = 0; k < par_best.size(); k++)
+                    cout << par_bisez_lin[k] << "\t";
+                cout << endl << "Chi quadro = " << chi_lin_fin << endl;
+            }
+        }
+        else
+        {
+            errore_lin = true;
+            if (complex)
+            {
+                cout << "-> non ha funzionato il metodo della retta con par" << n_worst << " (continuo al vecchio modo)" << endl;
+            }
+        }
+    }
+}
+
+
+
+
+void linear_mode::linearFit(vector<double>& x, vector<double>& y, double& m, double& q) {
     // Controllo che i vettori abbiano la stessa dimensione e non siano vuoti
     if (x.size() != y.size() || x.empty()) {
         throw invalid_argument("I vettori x e y devono avere la stessa dimensione e non essere vuoti.");
@@ -45,7 +190,7 @@ void linearFit(vector<double>& x, vector<double>& y, double& m, double& q) {
 }
 
 
-void bisezione_lin(vector<double>& par, vector<double> m, vector<double> q, int n_worst) {
+void linear_mode::bisezione_lin(vector<double>& par, vector<double> m, vector<double> q, int n_worst) {
 
     //Prima parte a step abbastanza piccoli e tutti regolari
     double range_min_par_n = par[n_worst] / 2;
@@ -217,7 +362,7 @@ void bisezione_lin(vector<double>& par, vector<double> m, vector<double> q, int 
 
 
 // Funzione per trovare il parametro "peggiore" -> devo capire qual è il parametro peggiore in funzione del quale migliorare gli altri con 'linear_mode'
-int worst_parameter(vector<double>& m_lin, vector<double>& q_lin) {
+int linear_mode::worst_parameter(vector<double>& m_lin, vector<double>& q_lin) {
     int n_worst = 0;
 
     m_lin.insert(m_lin.begin() + n_worst, 1.0);     // aumento la dimensione aggiungendo all'inizio (visto che all'inizio gli m e q sono in funzione di par0) in modo da avere la dimensione ugale a 'par_lin'
@@ -268,138 +413,5 @@ int worst_parameter(vector<double>& m_lin, vector<double>& q_lin) {
     return n_worst;
 }
 
-
-
-
-//funzione effettiva da usare nella main
-void linear_mode(vector<vector<double>>& par_lin, vector<double>& m_lin, vector<double>& q_lin, bool& errore_lin, bool& ricerca_retta, bool& faster, bool complex) {
-    //Modalità con interpolazione lineare dei parametri migliorati i primi 3 livelli
-    int num_point = 3;  //3 punti per l'interpolazione della retta
-    if (faster)
-        num_point = 2;  //2 punti per l'interpolazione della retta
-
-    //Riempio il vettore con i parametri migliori di ogni livello per poi interpolarli con una retta n-dimensionale
-    if (par_lin.size() <= num_point) {
-        if (par_lin.empty())
-            par_lin.push_back(par_best);
-        else
-        {
-            if (par_best != par_lin.back())
-                par_lin.push_back(par_best);
-        }
-        /*
-        cout << endl << "->";
-        for (int i = 0; i < par_best.size(); i++)
-            cout << "\t" << "->" << par_best[i];
-        cout << endl;
-        */
-    }
-
-    //Se è stato raggiunto il numero di punti prefissati inizio col metodo della retta
-    if (par_lin.size() == num_point) {
-                
-        try    //faccio la trasposta di 'par_lin'
-        {
-            par_lin = trasposta(par_lin);
-            //cout << "Matrice parametri da interpolare linearmente:" << endl;
-            //stampaMatrice(par_lin);
-
-        }
-        catch (const out_of_range& e)
-        {
-            errore_lin = true;              //Motivo per non usare mai più il metodo della retta
-            cerr << "errore trasposta in 'linear_mode': " << e.what() << endl;
-        }
-        catch (const invalid_argument& e)
-        {
-            errore_lin = true;              //Motivo per non usare mai più il metodo della retta
-            cerr << "errore trasposta in 'linear_mode': " << e.what() << endl;
-        }
-
-        
-        for (int i = 1; i < par_best.size(); i++)   //fa tutto in funzione di par0 (vedo dopo in funzione di quale è meglio fare, ma da qualche parte devo pur iniziare per capire quali parametri in funzione di quale è meglio procedere)
-        {
-            try {
-                linearFit(par_lin[0], par_lin[i], m_lin[i - 1], q_lin[i - 1]);
-            }
-            catch (const invalid_argument& e) {
-                errore_lin = true;              //Motivo per non usare mai più il metodo della retta
-                cerr << "Errore in linearFit: " << e.what() << endl;
-                return;
-            }
-            catch (const runtime_error& e) {
-                errore_lin = true;              //Motivo per non usare mai più il metodo della retta
-                cerr << "Errore in linearFit: " << e.what() << endl;
-                return;
-            }
-        }
-
-        //cerco di capire qual è il parametro peggiore e in funzione di quello ricalcolo i q ed m
-        int n_worst = 0;
-        try
-        {
-            n_worst = worst_parameter(m_lin, q_lin);       //ora 'm_lin' e 'q_lin' hanno la stessa dimensione di 'par_lin'
-        }
-        catch (const out_of_range& e)
-        {
-            errore_lin = true;
-            cerr << "metodo retta (worst_parameter) out_of_range: " << e.what() << endl;
-            return;
-        }
-        //cout << endl << "--> " << n_worst << " <--" << endl;
-        
-        /*
-        cout << endl << "gli m sono: " << endl;
-        for (int k = 0; k < m_lin.size(); k++)
-            cout << m_lin[k] << "\t";
-        cout << endl;
-
-        cout << endl << "i q sono: " << endl;
-        for (int k = 0; k < q_lin.size(); k++)
-            cout << q_lin[k] << "\t";
-        cout << endl;
-        */
-
-        
-
-        vector<double> par_bisez_lin = par_best;
-        try
-        {
-            bisezione_lin(par_bisez_lin, m_lin, q_lin, n_worst);
-
-        }
-        catch (const runtime_error& e)
-        {
-            errore_lin = true;              //Motivo per non usare mai più il metodo della retta
-            cerr << "errore in 'linear_mode': " << e.what() << endl;
-            return;
-        }
-
-        double chi_lin_fin = f_chi_quadro(par_bisez_lin);
-
-        if (chi_lin_fin < f_chi_quadro(par_best))
-        {
-            par_best = par_bisez_lin;
-            chi_quadro_min = chi_lin_fin;
-            ricerca_retta = true;
-
-            if (complex)
-            {
-                cout << endl << "Parametri bisez_lin migliorati rispetto a par" << n_worst << ":" << endl;
-                for (int k = 0; k < par_best.size(); k++)
-                    cout << par_bisez_lin[k] << "\t";
-                cout << endl << "Chi quadro = " << chi_lin_fin << endl;
-            }
-        }
-        else
-        {
-            errore_lin = true;
-            if (complex)
-            {
-                cout << "-> non ha funzionato il metodo della retta con par" << n_worst << " (continuo al vecchio modo)" << endl;
-            }
-        }
-    }
-}
 
 

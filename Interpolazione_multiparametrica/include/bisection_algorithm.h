@@ -3,7 +3,7 @@
 
 #include <vector>
 
-// Chiamare nel programma 'Results(par_best, approx);'
+// Chiamare nel programma 'bisection_algorithm(par, step, chi_quadro_min);'
 // in modo da creare un oggetto temporaneo che restituisca semplicemente a schermo i risultati
 
 

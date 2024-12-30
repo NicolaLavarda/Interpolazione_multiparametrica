@@ -75,33 +75,27 @@ int main(int argc, char* argv[]) {
     par_best = par;
 
 
+    // Miglioro i parametri usando il metodo 'discesa_gradiente'
+    double sensibility = 0.01;
+    gradient_descent_algorithm(par_best, chi_quadro_min, sensibility);
+
     if (faster || complex) {        //Stampa subito a schermo dei risultati (se in modalità 'complex' oppure 'faster')
         Results(par_best, approx, std::cout);       // passando 'std::cout' stampo a schermo, altrimenti potrei passargli un ofstream perché scriva su un file ad esempio
     }
-    else       //Altrimenti miglioro i parametri usando il metodo 'discesa_gradiente' (che verrebbe comunque usato nel costruttore di 'Results')
-    {
-        double sensibility = 0.01;
-        gradient_descent_algorithm(par_best, chi_quadro_min, sensibility);
-    }
-
-    //chi_quadro_min = 1e30;      //resetto il chi quadro minimo modificato dalla bisezione per il miglioramento della ricerca automatica logaritmica, in modo che le bisezioni successive in 'ricoprimento' possano partire anche con valori più alti rispetto all'attuale miglior chi quadro minimo
 
 
     //------------ESECUZIONE PROGRAMMA------------------
 
-    //eseguo la "main" (intendo la parte vera e propria del programma) fino ad una effettiva variazione del chi quadro minore del per mille (0.001) -> condizione presente alla fine del ciclo while
+    //eseguo il blocco seguente fino ad una effettiva variazione del chi quadro minore del per mille (0.001) -> condizione presente alla fine del ciclo while in 'end()'
     
-    cicle_programms = 1;
     bool errore_lin = false;
 
-    while (true) {  //la condizione di termine è alla fine
+    for (int cicle_programms = 1; cicle_programms < 20; cicle_programms++) {  //la condizione di termine è in 'end()' [...] '<20' è giusto per essere sicuro che per qualche bug non vada all'infinito
         
-        //Blocco inizializzazioni per ricerca lungo retta -> metodo della retta (molto più efficente dei "ricoprimenti" quando sono distante dalla soluzione)
-        vector<vector<double>> par_lin;              //parametri da interpolare linearmente
-        vector<double> m_lin(par.size() - 1, 0);     //coefficienti angolari per parametri da interpolare linearmente
-        vector<double> q_lin(par.size() - 1, 0);     //intercette per parametri da interpolare linearmente
+        
 
         covering c_generator(par_best, chi_quadro_min, cicle_programms, complex, faster);
+        linear_mode l_generator(par_best, faster, complex);
 
         //Calcolo parametri
         int cicle = 1;      //primo ciclo di livelli
@@ -126,20 +120,20 @@ int main(int argc, char* argv[]) {
             bool ricerca_retta = false;     //Cambia in 'true' se il metodo qui sotto della ricerca lungo la retta funziona
             if (par.size() == 1) errore_lin = true;
             if ((!errore_lin || retta) && cicle == 1)       // se da input metto retta=true vuol dire che voglio che venga sempre usato quando possibile il metodo della retta
-                linear_mode(par_lin, m_lin, q_lin, errore_lin, ricerca_retta, faster, complex);      //fin tanto che non si hanno almeno un tot di punti prefissati li si raccolgono, poi 'linear_mode' continua effettivamente cercando di migliorare i parametri
+                l_generator.research(par_best, errore_lin, ricerca_retta);      //fin tanto che non si hanno almeno un tot di punti prefissati li si raccolgono, poi 'linear_mode' continua effettivamente cercando di migliorare i parametri
             
 
+            // Passaggio al livello o al ciclo successivo
             c_generator.next();
 
             // Motivi di uscita dal ciclo 'for'
             if (c_generator.exit(ricerca_retta)) break;
 
-
-            //Se non è migliorato nemmeno una volta il chi quadro e sono al 7° tentativo tanto vale terminare tutto il programma
-            if (c_generator.get_chi_quadro_size() == 0 && k > 6) {
-                goto end_loops;     //torna nella main principale uscendo anche dal while
-            }
         }
+
+        // Miglioro i parametri usando il metodo 'discesa_gradiente'
+        double sensibility = 0.01;
+        gradient_descent_algorithm(par_best, chi_quadro_min, sensibility);
 
         // Se non esco allora stampo i risultati (se 'complex' è attivato)
         if (complex)
@@ -147,33 +141,22 @@ int main(int argc, char* argv[]) {
             //Stampo a schermo i risultati
             Results(par_best, approx, std::cout);
         }
-        else       //Altrimenti miglioro i parametri usando il metodo 'discesa_gradiente' (che verrebbe comunque usato nel costruttore di 'Results')
-        {
-            double sensibility = 0.01;
-            gradient_descent_algorithm(par_best, chi_quadro_min, sensibility);
-        }
 
         // riaggiorno parametri, libero 'chi_quadro' e 'livelli', e passo al ciclo di programma successivo [...] poi in caso esco e termino tutto
         if (c_generator.end()) break;
 
-        cicle_programms++;
-
     }
-    end_loops:  //arrivo qui se ho trovato 'goto end_loops;' per uscire dal miglioramento dei parametri non riuscendo a migliorare meglio del per mille il chi quadro
 
+    // Miglioro i parametri usando il metodo 'discesa_gradiente'
+    double sensibility1 = 0.01;
+    gradient_descent_algorithm(par_best, chi_quadro_min, sensibility1);
 
-    // stampo i risultati a schermo una sola volta alla fine se 'complex=false'
+    // stampo i risultati a schermo una sola volta alla fine se 'complex=false' altrimenti sono già stati stampati a schermo
     if (!complex)
     {
         //Stampo a schermo i risultati
         Results(par_best, approx, std::cout);
     }
-    else       //Altrimenti miglioro i parametri usando il metodo 'discesa_gradiente' (che verrebbe comunque usato nel costruttore di 'Results')
-    {
-        double sensibility = 0.01;
-        gradient_descent_algorithm(par_best, chi_quadro_min, sensibility);
-    }   //verrebbero comunque migliorati da 'writeFile' dato che utilizza 'Results', ma così non sono vincolato a dove utilizzare 'writeFile'
-
 
     //------------SALVATAGGIO DEI RISULTATI-----------------
 
