@@ -1,6 +1,8 @@
 #ifndef GRADIENT_DESCENT_ALGORITHM_H
 #define GRADIENT_DESCENT_ALGORITHM_H
 
+#include "interpolator.h"
+
 #include <vector>
 
 // Chiamare nel programma 'gradient_descent_algorithm(par_best, approx);'
@@ -16,6 +18,9 @@ public:
 private:
 
     std::vector<double> grad_f_chi_quadro(const std::vector<double> par);
+
+    // Riferimento all'istanza Singleton
+    Interpolator& i_generator = Interpolator::getInstance();
 
 };
 

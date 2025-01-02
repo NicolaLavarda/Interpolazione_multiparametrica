@@ -1,5 +1,6 @@
-#include "interpolating_function.h"
 #include "bisection_algorithm.h"
+
+#include "interpolator.h"
 
 #include <vector>
 #include <cmath>
@@ -17,15 +18,19 @@ using namespace std;
 
 
 bisection_algorithm::bisection_algorithm(vector<double>& par_best, const vector<double> step, double& chi_quadro_min) :
-    par_base(par_best), step(step), chi_min(f_chi_quadro(par_best))
+    par_base(par_best), step(step)
 {
+    chi_min = i_generator.fChiQuadro(par_best);
 
     //Preservo i parametri per controlalre alla fine se il chi quadro è stato effettivamente migliorato (ovvio, ma per doppio check)
     vector<double> par_prec = par_best;
-    double chi_prec = f_chi_quadro(par_prec);
+    double chi_prec = i_generator.fChiQuadro(par_prec);
     
     try
     {
+        // debug
+        //std::cout << std::endl << "--->"; for (int t = 0; t < par_best.size(); t++) std::cout << par_best[t] << "\t";
+
         bisection(par_best, par_best, step, 0);
     }
     catch (const std::runtime_error& e) {
@@ -36,7 +41,7 @@ bisection_algorithm::bisection_algorithm(vector<double>& par_best, const vector<
     }
 
     //Verifico siano effettivamente migliori i parametri (chi_quadro minore)
-    double chi_bisezione = f_chi_quadro(par_best);
+    double chi_bisezione = i_generator.fChiQuadro(par_best);
 
     if (chi_bisezione < chi_prec)
     {
@@ -85,7 +90,8 @@ void bisection_algorithm::bisection(vector<double> par, vector<double>& par_def,
         range_max_par_n += fabs(passo[n] / 2);        //
     }
 
-    //cout << range_min_par_n << " - " << par[n] << " - " << range_max_par_n << endl;
+    // debug
+    // cout << range_min_par_n << " - " << par[n] << " - " << range_max_par_n << endl;
 
     double precisione_bisezione = 0.0001;       //es. 0.0001 vuol dire che miglioro ogni parametro fino ad una parte su diecimila del valore del parametro
     if (par.size() < 3)
@@ -104,7 +110,7 @@ void bisection_algorithm::bisection(vector<double> par, vector<double>& par_def,
     for (double p = range_min_par_n; p < range_max_par_n + fabs(range_max_par_n * 0.1); p += (range_max_par_n - range_min_par_n))   //primi due elementi agli estremi --> uso 'p < range_max_par_n + fabs(range_max_par_n * 0.1)' anzichè 'p <= range_max_par_n' per evitare di controllare valori tra double molto vicini
     {
         par[n] = p;
-        double sum_chi = f_chi_quadro(par);
+        double sum_chi = i_generator.fChiQuadro(par);
         chi_par_n.push_back(sum_chi);
         par_chi_n.push_back(p);
     }
@@ -127,12 +133,15 @@ void bisection_algorithm::bisection(vector<double> par, vector<double>& par_def,
 
         //Aggiornamento all'esterno degli ultimi parametri ottimizzzati
         par_def = par;
+
+        // debug
+        //std::cout << std::endl << "->"; for (int t = 0; t < par.size(); t++) std::cout << par[t] << "\t";
         
         // RICHIAMO ALGORITMO DI BISEZIONE RICORSIVO
         bisection(par, par_def, passo, n + 1);
 
         // ritorno a parametro precedente
-        double sum_chi = f_chi_quadro(par);
+        double sum_chi = i_generator.fChiQuadro(par);
         par_chi_n.push_back(par[n]);
         chi_par_n.push_back(sum_chi);
 

@@ -1,5 +1,7 @@
 #include "matrix.h"
-#include "interpolating_function.h"
+
+#include "interpolator.h"
+
 #include <iostream>
 #include <cstdlib>
 #include <vector>
@@ -13,10 +15,13 @@
 
 using namespace std;
 
+// Variabile globale visibile solo in questo file
+// Riferimento all'istanza Singleton
+Interpolator& i_generator = Interpolator::getInstance();
 
 //Funzione obbiettivo chi_quadro da usare nel calcolo delle derivate seconde per l'hessiana
 double f(vector<double> parametri) {
-    return f_chi_quadro(parametri);
+    return i_generator.fChiQuadro(parametri);
 }
 
 
@@ -39,7 +44,7 @@ double second_derivative(vector<double> params, int i, int j) {
 double second_derivative(vector<double> params, int i) {
     //auto min_it = std::min_element(params.begin(), params.end());
     //double h = *min_it * 1e-5;
-    double h = 1e-5 * fabs(params[i]);
+    double h = 1e-8 * (fabs(params[i]) < 1) ? 1 : fabs(params[i]);
     vector<double> p1 = params, p2 = params, p3 = params;
 
     p1[i] += h;  // f(p_i + h)

@@ -1,4 +1,5 @@
 #include "file.h"
+
 #include "util.h"
 #include "results.h"      // per stampare i risultati sul file dati
 
@@ -152,7 +153,8 @@ void writeFile(const std::string filePath,
 
     file << "Interpolating function: \t" << function;
 
-    Results(par_best, approx, file);
+    int dim_x = x.size();
+    Results(par_best, approx, dim_x, file);
 
 
     file.close();

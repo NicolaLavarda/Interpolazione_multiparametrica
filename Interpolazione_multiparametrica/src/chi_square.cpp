@@ -1,6 +1,9 @@
+#include "chi_square.h"
+
 #include "covering.h"
 #include "matrix.h"
-#include "interpolating_function.h"
+#include "interpolator.h"
+
 #include "results.h"
 #include <iostream>
 #include <vector>
@@ -60,6 +63,9 @@ double p_value(double chi_observato, int GDL) {
 
 double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double chi_piu_uno_val, double range) {
 
+    // Riferimento all'istanza Singleton
+    Interpolator& i_generator = Interpolator::getInstance();
+
     //Definsco variabili iniziali in base a quale parametro (numero_parametro) voglio analizzare
     double par = parametri[numero_parametro];
     if (numero_parametro >= parametri.size()) {
@@ -70,7 +76,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double 
 
     //precisione
     double precisione_par = fabs(par * 0.0000001);
-    double chi_min = f_chi_quadro(parametri);
+    double chi_min = i_generator.fChiQuadro(parametri);
 
     //Estremi per cui il sigma sarebbe altrimenti maggiore del range (di solito do valore 20%)
     range = (range == 0) ? 0.20 : range;
@@ -95,7 +101,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double 
     for (int t = 0; t < primi_chi_dx.size(); t++)
     {
         parametri[numero_parametro] = primi_chi_dx[t];
-        double sum_chi = f_chi_quadro(parametri);
+        double sum_chi = i_generator.fChiQuadro(parametri);
         dx_f_chi.push_back(parametri[numero_parametro]);
         dx_chi.push_back(sum_chi);
         //cout << parametri[numero_parametro] << "\t" << sum_chi << endl;
@@ -113,7 +119,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double 
     {
 
         parametri[numero_parametro] = dx_f_chi[posizione_min_chi_dx] + fabs(dx_f_chi[posizione_min_chi_dx] - dx_f_chi[posizione_sec_min_chi_dx]) / 2;
-        double sum_chi = f_chi_quadro(parametri);
+        double sum_chi = i_generator.fChiQuadro(parametri);
         dx_f_chi.push_back(parametri[numero_parametro]);
         dx_chi.push_back(sum_chi);
 
@@ -154,7 +160,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double 
     for (int t = 0; t < primi_chi_sx.size(); t++)
     {
         parametri[numero_parametro] = primi_chi_sx[t];
-        double sum_chi = f_chi_quadro(parametri);
+        double sum_chi = i_generator.fChiQuadro(parametri);
         sx_f_chi.push_back(parametri[numero_parametro]);
         sx_chi.push_back(sum_chi);
         //cout << parametri[numero_parametro] << endl;
@@ -168,7 +174,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double 
 
         parametri[numero_parametro] = sx_f_chi[posizione_sec_min_chi_sx] + fabs(sx_f_chi[posizione_min_chi_sx] - sx_f_chi[posizione_sec_min_chi_sx]) / 2;
         //cout << parametri[numero_parametro] << endl;
-        double sum_chi = f_chi_quadro(parametri);
+        double sum_chi = i_generator.fChiQuadro(parametri);
         sx_f_chi.push_back(parametri[numero_parametro]);
         sx_chi.push_back(sum_chi);
 

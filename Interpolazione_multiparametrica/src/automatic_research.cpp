@@ -1,6 +1,7 @@
 #include "automatic_research.h"
+
 #include "gradient_descent_algorithm.h"
-#include "interpolating_function.h"
+#include "interpolator.h"
 
 #include <iostream>
 #include <vector>
@@ -12,6 +13,9 @@ using namespace std;
 //Ricerca automatica logaritmica
 void ricerca_auto(vector<double>& par, vector<double>& par_auto, vector<double>& par_def, int n) {
     //mettere 'par_auto=par' e 'par_auto=par' prima della chiamata della funzione
+
+    // Riferimento all'istanza Singleton
+    Interpolator& i_generator = Interpolator::getInstance();
 
     static double chi_min_auto = 1e25;
     static vector<double> sec_best_par = par;
@@ -55,7 +59,7 @@ void ricerca_auto(vector<double>& par, vector<double>& par_auto, vector<double>&
 
         if (par[n] != 0) return;    //Torno indietro se ne trovo uno che non è di quelli automatici "a" e procedo con quello successivo
 
-        double sum_chi = f_chi_quadro(par_auto);
+        double sum_chi = i_generator.fChiQuadro(par_auto);
 
         //Debug
         if (false) {
@@ -103,12 +107,15 @@ void ricerca_auto(vector<double>& par, vector<double>& par_auto, vector<double>&
 
 void parametri_auto(vector<double>& par, double& chi_quadro_min, bool output) {
 
+    // Riferimento all'istanza Singleton
+    Interpolator& i_generator = Interpolator::getInstance();
+
     //Ricerca automatica logaritmica
     vector<double> par_auto = par;
     vector<double> par_def = par;
     ricerca_auto(par, par_auto, par_def, 0);
 
-    chi_quadro_min = f_chi_quadro(par);
+    chi_quadro_min = i_generator.fChiQuadro(par);
     if (output)
     {
         cout << "Parametri da ricerca automatica:" << endl;
@@ -134,8 +141,8 @@ void parametri_auto(vector<double>& par, double& chi_quadro_min, bool output) {
     double sensibility1 = 1;    // variazione iniziale del 100%
     gradient_descent_algorithm(par_i2, chi_quadro_min, sensibility1);    //Miglioro 'par_i2' con metodo 'discesa_gradiente'
 
-    par = (f_chi_quadro(par_i1) < f_chi_quadro(par_i2)) ? par_i1 : par_i2;      //Controllo se è meglio 'par_i1' o 'par_i2'
-    chi_quadro_min = f_chi_quadro(par);
+    par = (i_generator.fChiQuadro(par_i1) < i_generator.fChiQuadro(par_i2)) ? par_i1 : par_i2;      //Controllo se è meglio 'par_i1' o 'par_i2'
+    chi_quadro_min = i_generator.fChiQuadro(par);
 
     if (output)
     {

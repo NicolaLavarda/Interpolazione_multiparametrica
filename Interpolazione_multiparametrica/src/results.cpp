@@ -1,8 +1,8 @@
 #include "results.h"
+
+#include "interpolator.h"
 #include "chi_square.h"
 #include "matrix.h"
-#include "interpolating_function.h"
-//#include "gradient_descent_algorithm.h"
 
 #include <iostream>
 #include <vector>
@@ -11,7 +11,7 @@
 #include <iomanip>
 #include <fstream>
 
-extern std::vector<double> x;        //Dati iniziali
+extern int dim_x;
 
 
 // Chiamare nel programma 'Results(par_best, approx);'
@@ -19,8 +19,9 @@ extern std::vector<double> x;        //Dati iniziali
 
 
 Results_base::Results_base(std::vector<double> par_base, bool approx_bool, std::ostream& output) :
-    par(par_base), chi_min(f_chi_quadro(par)), approx_bool(approx_bool) , out(output)
+    par(par_base), approx_bool(approx_bool) , out(output)
 {
+    chi_min = i_generator.fChiQuadro(par);
     //double sensibility = 0.01;
     //gradient_descent_algorithm(par, chi_min, sensibility);
 }
@@ -90,7 +91,7 @@ Result2::Result2()
 }
 
 
-Results::Results(std::vector<double> par_derived, bool approx_bool, std::ostream& output) :
+Results::Results(std::vector<double> par_derived, bool approx_bool, int dim_x, std::ostream& output) :
     Results_base(par_derived, approx_bool, output), Result1(), Result2() {
     //chiama in ordine 'Results_base', 'Result1' e 'Result2' ed infine qui dentro al costruttore di 'Results'
     // 
@@ -99,7 +100,7 @@ Results::Results(std::vector<double> par_derived, bool approx_bool, std::ostream
 
 
     //Stampo anche le informazioni sul chi_quadro
-    double GDL = x.size() - par.size();
+    double GDL = dim_x - par.size();
     double p_value_val = p_value(chi_min, GDL);
     out << "chi_quadro = " << setprecision(3) << chi_min << " / " << GDL << endl;
     out << "p_value = " << p_value_val << endl;

@@ -1,6 +1,8 @@
 #ifndef RESULTS_H
 #define RESULTS_H
 
+#include "interpolator.h"
+
 #include <vector>
 #include <string>
 
@@ -21,6 +23,10 @@ protected:
     double chi_min;
     bool approx_bool;
     std::ostream& out; // Stream di output
+
+private:
+    // Riferimento all'istanza Singleton
+    Interpolator& i_generator = Interpolator::getInstance();
 };
 
 // Classe intermedia 1, eredita virtualmente da Base
@@ -39,7 +45,7 @@ public:
 // Classe derivata, eredita da entrambe le classi intermedie
 class Results : public Result1, public Result2 {
 public:
-    Results(std::vector<double> par_derived, bool approx_bool, std::ostream& output);
+    Results(std::vector<double> par_derived, bool approx_bool, int dim_x, std::ostream& output);
     //chiama in ordine 'Results_base', 'Result1' e 'Result2' ed infine qui dentro al costruttore di 'Results'
     // 
     // Chiamare nel programma 'Results(par_best, approx);'

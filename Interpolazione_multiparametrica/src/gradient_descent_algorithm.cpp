@@ -1,4 +1,4 @@
-#include "interpolating_function.h"
+#include "interpolator.h"
 #include "gradient_descent_algorithm.h"
 
 #include <vector>
@@ -23,7 +23,7 @@ gradient_descent_algorithm::gradient_descent_algorithm(std::vector<double>& par,
     double tollerance = 0.001;
     int max_iter = 300;
 
-    double grad0 = f_chi_quadro(par);
+    double grad0 = i_generator.fChiQuadro(par);
     double grad1 = grad0;
     bool migliorato = false;
 
@@ -50,7 +50,7 @@ gradient_descent_algorithm::gradient_descent_algorithm(std::vector<double>& par,
             //cout << grad[i] * par_p[i] * tasso_apprendimento / fabs(grad[max_index]) << " - " << par_p[i] << "\t";
         }
 
-        double grad_p = f_chi_quadro(par_p);
+        double grad_p = i_generator.fChiQuadro(par_p);
         if (grad_p < grad0)
         {
             grad1 = grad0;
@@ -63,7 +63,7 @@ gradient_descent_algorithm::gradient_descent_algorithm(std::vector<double>& par,
             tasso_apprendimento /= 2;
         }
         //debug
-        //std::cout << "Iterazione " << iter + 1 << ": f_chi_quadro(par) = " << f_chi_quadro(par); for (int i = 0; i < par.size(); i++) cout << "\t" << par[i]; cout << std::endl;
+        //std::cout << "Iterazione " << iter + 1 << ": i_generator.fChiQuadro(par) = " << i_generator.fChiQuadro(par); for (int i = 0; i < par.size(); i++) cout << "\t" << par[i]; cout << std::endl;
 
         // Condizione di convergenza
         if (migliorato && (std::fabs(grad0 - grad1) < tollerance)) {
@@ -73,8 +73,8 @@ gradient_descent_algorithm::gradient_descent_algorithm(std::vector<double>& par,
     }
 
     //Verifico siano effettivamente migliori i parametri (chi_quadro minore)
-    double chi_grad = f_chi_quadro(par);
-    double chi_prec = f_chi_quadro(par_prec);
+    double chi_grad = i_generator.fChiQuadro(par);
+    double chi_prec = i_generator.fChiQuadro(par_prec);
     if (chi_grad < chi_prec)
     {
         //par sono già modificati e i migliori
@@ -110,8 +110,8 @@ std::vector<double> gradient_descent_algorithm::grad_f_chi_quadro(const std::vec
         par_minus[i] -= h;
 
         // Approssima la derivata con la differenza centrale
-        grad[i] = (f_chi_quadro(par_plus) - f_chi_quadro(par_minus)) / (2 * h);
-        //cout <<par_plus[i] << "\t" << par_minus[i] << "\t" << f_chi_quadro(par_plus) << "\t" << f_chi_quadro(par_minus) << "\t" << grad[i] << endl;
+        grad[i] = (i_generator.fChiQuadro(par_plus) - i_generator.fChiQuadro(par_minus)) / (2 * h);
+        //cout <<par_plus[i] << "\t" << par_minus[i] << "\t" << i_generator.fChiQuadro(par_plus) << "\t" << i_generator.fChiQuadro(par_minus) << "\t" << grad[i] << endl;
     }
 
     return grad;

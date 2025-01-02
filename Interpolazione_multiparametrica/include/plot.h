@@ -1,6 +1,8 @@
 #ifndef PLOT_H
 #define PLOT_H
 
+#include "interpolator.h"
+
 #include <vector>
 #include <string>
 
@@ -59,6 +61,9 @@ private:
 
     //Nome base di tutti i grafici
     std::string base_name;
+
+    // Riferimento all'istanza Singleton
+    Interpolator& i_generator = Interpolator::getInstance();
 
 };
 

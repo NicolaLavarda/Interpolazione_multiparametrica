@@ -2,7 +2,7 @@
 
 #include "util.h"
 #include "file.h"
-#include "interpolating_function.h"
+#include "interpolator.h"
 
 #include <iostream>
 #include <vector>
@@ -14,19 +14,25 @@
 
 using namespace std;
 
-extern vector<double> x, sigma_x, y, sigma_y;       //Dati iniziali
 
-
-void input(int argc, char* argv[], vector<double>& par, int& num_a, map<string, bool>& options) {
-
+void input(int argc, char* argv[], std::vector<double>& par,
+    int& num_a, std::map<std::string, bool>& options,
+    std::vector<double>& x, std::vector<double>& sigma_x,
+    std::vector<double>& y, std::vector<double>& sigma_y) {
+    
+    // Prendo l'istanza al Singleton 'Interpolator'
+    Interpolator& i_generator = Interpolator::getInstance();
 
     if (argc == 1) {
         cerr << "No file name has been entered" << endl;
         exit(EXIT_FAILURE);
     }
+    
+    //std::vector<double> x, sigma_x, y, sigma_y;
     int num_columns = readFile(string(argv[1]), x, sigma_x, y, sigma_y);
     if (num_columns < 0)
         exit(EXIT_FAILURE);
+    i_generator.setData(x, sigma_x, y, sigma_y);
 
     if (argc == 2) {
         cerr << "No parameters value have been entered" << endl;
@@ -66,7 +72,7 @@ void input(int argc, char* argv[], vector<double>& par, int& num_a, map<string, 
     string espressione_interpolante = string("(1)*") + argv[par_size + 2];        //"(1)*" è perché se scrivo come primo carattere un numero mi da errore e non capisco perché (in questo modo ho risolto)
     try {
         // Inizializza l'espressione solo una volta
-        setup_expression(espressione_interpolante);
+        i_generator.setExpression(espressione_interpolante);
     }
     catch (const runtime_error& e) {
         std::cerr << "Error in compilation of the expression: " << espressione_interpolante << std::endl;

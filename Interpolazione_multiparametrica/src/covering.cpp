@@ -1,5 +1,6 @@
 #include "covering.h"
-#include "interpolating_function.h"
+
+//#include "interpolator.h"
 #include "bisection_algorithm.h"
 #include "matrix.h"
 
@@ -14,7 +15,7 @@ using namespace std;
 
 
 // costruttore di base
-covering::covering(vector<double>& par_best, double chi_quadro_min, double cicle_programms, bool output, bool faster) :
+covering::covering(vector<double> par_best, double chi_quadro_min, double cicle_programms, bool output, bool faster) :
     par_best(par_best), chi_quadro_min(chi_quadro_min), cicle_programms(cicle_programms), output(output), faster(faster)
 {
 
@@ -57,17 +58,17 @@ void covering::ricoprimento(vector<double>& par, vector<double>& par_best, int d
             double sum_chi_p = 0;
             vector<double> par_bis = par;                       // 'par' ha le coordinate giuste dell'attuale centro del cubo n-dimensionale in analisi, quindi dev'essere l'argomento della funzione, ma non può essere modificato (cosa che invece farebbe la funzione), quindi gli passo una copia
             bisection_algorithm(par_bis, passo, sum_chi_p);
-            par_best = par_bis;      // 'par_best' sono ora quelli migliorati con l'algoritmo di bisezione
-
-            //cout << par_best[0] << "\t" << par_best[1] << "\t" << sum_chi_p << endl;
+            
+            //cout << par[0] << "\t" << par[1] << "\t" << sum_chi_p << endl;
 
             if (sum_chi_p < chi_quadro_min) {
 
                 if (output)
                     cout << "\t" << sum_chi_p << " ";
 
+                par_best = par_bis;      // 'par_best' sono ora quelli migliorati con l'algoritmo di bisezione (o al massimo i 'par')
                 chi_quadro_min = sum_chi_p;
-                par_best = par_best;
+
                 chi_quadro.push_back(sum_chi_p);          //Lo metto nella main in modo da aggiungerlo solo alla fine di un livello di ricoprimento (in uno stesso livello può essere che rimanga miniore del "per mille")
                 livelli[livello]++;                       //Metto un valore diverso da 0 se in un livello riesco a migliorare il chi quadro
             }
@@ -92,6 +93,13 @@ void covering::ricoprimento(vector<double>& par, vector<double>& par_best, int d
 
 
 void covering::next() {
+
+    if (cicle == 1 && k < 6)
+    {
+        //lascio "spazio" al primo ciclo per cercare in largo
+        ++livello;
+        return;
+    }
 
     //Passaggio al ciclo successivo, altrimenti semplicemente passaggio al livello successivo
     if ((livello > 1) && (livelli[livello] == 0 && (livelli[livello - 1] == 0 || (faster || livello > 4))))      //Per livelli 2, 3 e 4 è necessario che almeno gli ultimi due livelli non migliorino il chi quadro per passare al ciclo successivo [...] if (faster || livello > 4) //dal livello 5 in poi basta che un solo livello non migliori il chi quadro per passare al ciclo successivo (oppure se è attivo 'faster')
@@ -148,9 +156,6 @@ bool covering::exit(bool ricerca_retta) {
     return false;
 }
 
-int covering::get_chi_quadro_size() {
-    return chi_quadro.size();
-}
 
 bool covering::end() {
 
@@ -159,6 +164,12 @@ bool covering::end() {
     livelli.clear();            //livelli viene ripristinato
     livelli.assign(100, 0);     //
     chi_quadro.clear();         //chi_quadro viene ripristinato
+
+    if (cicle_programms == 1)
+    {
+        //Non posso uscire già al primo ciclo
+        return false;
+    }
 
     //Termino l'intero programma se il chi quadro subisce effettivamente un miglioramento minore del per mille (0.001)
     if (cicle_programms > 1 && (chi_quadro_ciclo_prec != chi_quadro_min && chi_quadro_ciclo_prec - chi_quadro_min < 0.001))

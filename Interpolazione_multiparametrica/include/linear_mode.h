@@ -1,6 +1,8 @@
 #ifndef LINEAR_MODE_H
 #define LINEAR_MODE_H
 
+#include "interpolator.h"
+
 #include <vector>
 
 // Chiamare nel programma 'linear_mode(par_lin, m_lin, q_lin, errore_lin, ricerca_retta, faster, complex);'
@@ -36,6 +38,9 @@ private:
 
     bool faster;
     bool complex;
+
+    // Riferimento all'istanza Singleton
+    Interpolator& i_generator = Interpolator::getInstance();
 
 };
 
