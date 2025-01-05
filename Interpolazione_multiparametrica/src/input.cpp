@@ -81,6 +81,9 @@ void input(int argc, char* argv[], std::vector<double>& par,
 
 
     //Parametri ulteriori inseriti come ultima cosa in comando di compilazione dall'utente
+    for (auto& [key, value] : options) {
+        value = false;
+    }
     if (argc > par_size + 3)
     {
         for (int i = par_size + 3; i < argc; ++i) {

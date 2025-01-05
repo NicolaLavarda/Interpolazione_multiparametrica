@@ -13,7 +13,7 @@ public:
 
     void status(int cicle_val, int k);
 
-    void ricoprimento(std::vector<double>& par, std::vector<double>& par_best, int dimensione, bool is_on_surface);
+    void ricoprimento(std::vector<double>& par_best, int dimensione, bool is_on_surface);
 
     void next();
 

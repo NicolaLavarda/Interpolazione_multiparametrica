@@ -59,7 +59,7 @@ Result1::Result1()
     out << "Parametri con errori al chi_quadro+1:" << endl;
     for (int i = 0; i < par.size(); i++)
     {
-        string nome = "par" + to_string(i);
+        std::string nome(1, name_par[i]);
         double range = 0.20;   //cerco l'errore al chi+1 entro +-20% del valore del parametro (in caso fosse più grande la funzione allarga la ricerca)
         general_result(par[i], chi_piu_uno_par_n(par, i, chi_piu_uno_val, range), nome, approx_bool);      //true per arrotondare con il giusto numero di cifre significative
     }
@@ -84,7 +84,7 @@ Result2::Result2()
     out << "Parametri con errori da matrice di covarianza:" << endl;
     for (int i = 0; i < par.size(); i++)
     {
-        string nome = "par" + to_string(i);
+        std::string nome(1, name_par[i]);
         general_result(par[i], sqrt(invH[i][i]), nome, approx_bool);      //true per arrotondare con il giusto numero di cifre significative
     }
     out << "----------------------------------------------------------------" << endl;

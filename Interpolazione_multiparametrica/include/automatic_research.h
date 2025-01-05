@@ -5,7 +5,7 @@
 
 void ricerca_auto(std::vector<double>& par, std::vector<double>& par_auto, std::vector<double>& par_def, int n);
 
-void parametri_auto(std::vector<double>& par, double& chi_quadro_min, bool output);
+void parametri_auto(std::vector<double>& par, bool output);
 
 
 #endif

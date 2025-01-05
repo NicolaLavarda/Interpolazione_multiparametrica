@@ -23,6 +23,7 @@ protected:
     double chi_min;
     bool approx_bool;
     std::ostream& out; // Stream di output
+    std::vector<char> name_par = { 'a','b','c','d','e' };   // nomi delle variabili
 
 private:
     // Riferimento all'istanza Singleton

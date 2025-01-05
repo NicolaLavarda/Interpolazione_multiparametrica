@@ -29,11 +29,7 @@ covering::covering(vector<double> par_best, double chi_quadro_min, double cicle_
     if (cicle_programms > 2) spostamento /= cicle_programms * 2;        //aumentando fino ad un '*2' ('spostamento /= cicle_programms * 2') il tempo d'esecuzione è sempre migliorato, ma da valutare bene come ottimizzare il parametro '*2'
 
     for (int i = 0; i < par.size(); i++)
-        passo.push_back(spostamento * ((fabs(par[i]) > 0.5) ? fabs(par[i]) : 2));        //spostamento * 2 se miniore di 0.5 in modo che il rispettivo 'passo' sia pari a 1 (che nella funzione diventerà un range semilargo 0.5)
-
-    //par_matrix.push_back(par_best);     //Faccio arrivare i par_best di ogni intero ciclo di programma alla funzione 'ricoprimento' come utimo vettore del vettore di vettori par_matrix
-
-    //par_matrix_ext = par_matrix;
+        passo.push_back(spostamento * ((fabs(par[i]) > 0.5) ? fabs(par[i]) : 2));        //spostamento * 2 se miniore di 0.5 in modo che il rispettivo 'passo' sia pari a 0.1*2=0.2 (che nella funzione diventerà un range semilargo 0.1)
 
 }
 
@@ -47,7 +43,7 @@ void covering::status(int cicle_val, int k_val) {
 }
 
 // Funzione per generare i parallelepipedi n-dimensionali sulla "superficie" del livello corrente con passi diversi in ogni dimensione
-void covering::ricoprimento(vector<double>& par, vector<double>& par_best, int dimensione, bool is_on_surface) {
+void covering::ricoprimento(vector<double>& par_best, int dimensione, bool is_on_surface) {
     //vector<double> par_prov = par_matrix[cicle_programms - 1]; //non va bene 'static vector<double> par_prov = par;' perché altrimenti mi rimane anche per le "riesecuzioni del programma successive". Importante che sia esattamente così: se passassi in qualsiasi modo il vettore alla funzione fidati che non funziona perché poi cambia, fidati.
 
     if (dimensione == par.size()) {
@@ -87,7 +83,7 @@ void covering::ricoprimento(vector<double>& par, vector<double>& par_best, int d
         bool surface_condition = m;
         //bool surface_condition = (fabs(delta - livello * passo[dimensione]) < 1e-9);  // Precisione double circa pari a 1e-9
         par[dimensione] = par_prov[dimensione] + delta;  // Aggiorna la coordinata corrente
-        ricoprimento(par, par_best, dimensione + 1, is_on_surface || surface_condition);
+        ricoprimento(par_best, dimensione + 1, is_on_surface || surface_condition);
     }
 }
 
@@ -113,7 +109,8 @@ void covering::next() {
         livelli.assign(100, 0);     //livelli viene ripristinato
 
         for (int i = 0; i < par.size(); i++)
-            passo[i] = (fabs(par[i]) > 0.5) ? fabs(par[i] * spostamento) : fabs(2 * spostamento);   //Riduco 'spostamento' per i livelli successivi (all'interno dello stesso 'cicle_programme')
+            passo[i] = (fabs(par[i]) > 0.5) ? fabs(par[i] * spostamento) : fabs(par[i] * 4 * spostamento);   //Riduco 'spostamento' e 'passo' per i livelli successivi (all'interno dello stesso 'cicle_programme')
+        
         cicle++;
     }
     else

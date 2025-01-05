@@ -105,7 +105,7 @@ void ricerca_auto(vector<double>& par, vector<double>& par_auto, vector<double>&
 }
 
 
-void parametri_auto(vector<double>& par, double& chi_quadro_min, bool output) {
+void parametri_auto(vector<double>& par, bool output) {
 
     // Riferimento all'istanza Singleton
     Interpolator& i_generator = Interpolator::getInstance();
@@ -115,7 +115,7 @@ void parametri_auto(vector<double>& par, double& chi_quadro_min, bool output) {
     vector<double> par_def = par;
     ricerca_auto(par, par_auto, par_def, 0);
 
-    chi_quadro_min = i_generator.fChiQuadro(par);
+    double chi_quadro_min = i_generator.fChiQuadro(par);
     if (output)
     {
         cout << "Parametri da ricerca automatica:" << endl;
