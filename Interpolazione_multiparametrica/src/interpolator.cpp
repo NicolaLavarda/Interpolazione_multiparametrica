@@ -11,23 +11,6 @@
 #include <algorithm>
 #include <stdexcept>
 
-// Membro privato per l'espressione, simboli e parser
-typedef exprtk::symbol_table<double> symbol_table_t;
-typedef exprtk::expression<double> expression_t;
-typedef exprtk::parser<double> parser_t;
-
-// Dichiarazione globale per l'espressione, simboli e parser
-symbol_table_t symbol_table;
-expression_t expression;
-parser_t parser;
-
-
-double x_i = 0;     //Devo inizializzare in qualche modo le variabili dell'espressione_interpolante (tanto vengono cambiate e riaggiornate ogni volta che viene richiamata la funzione 'f_chi_quadro')
-double a = 1;
-double b = 2;
-double c = 3;
-double d = 4;
-double e = 5;
 
 // Costruttore privato
 Interpolator::Interpolator() {
@@ -55,7 +38,7 @@ void Interpolator::setExpression(const std::string& espressione_interpolante) {
     expression.register_symbol_table(symbol_table);
 
     if (!parser.compile(espressione_interpolante, expression)) {
-        throw std::runtime_error("Compilazione fallita.");
+        throw std::runtime_error("Error in 'setExpression': Interpolating expression registration failed.");
     }
 }
 
@@ -97,8 +80,6 @@ double Interpolator::fChiQuadro(std::vector<double> par) {
             sum_chi += std::pow((y[i] - expression.value()), 2) / (std::pow(sigma_y[i],2) + std::pow(dfdx(i) * sigma_x[i], 2));
         }
     }
-    
-
 
     return sum_chi;
 }
@@ -144,7 +125,7 @@ double Interpolator::xFunction(std::vector<double> par, int i) {
     //cout << a << "\t" << b << "\t" << f(a) << "\t" << f(b) << endl;
 
     if (f(a) * f(b) >= 0) {
-        throw std::invalid_argument("f(a) e f(b) devono avere segni opposti!");
+        throw std::invalid_argument("Error in 'xFunction': bisection failed");
     }
 
     double c; // Punto medio
@@ -168,7 +149,7 @@ double Interpolator::xFunction(std::vector<double> par, int i) {
     }
 
     // Se il numero massimo di iterazioni è stato raggiunto
-    throw std::runtime_error("Raggiunto il numero massimo di iterazioni senza convergenza.");
+    throw std::runtime_error("Error in 'xFunction': Maximum number of iterations reached without convergence.");
 }
 
 

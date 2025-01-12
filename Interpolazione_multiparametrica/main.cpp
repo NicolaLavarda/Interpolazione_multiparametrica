@@ -17,12 +17,13 @@ int main(int argc, char* argv[]) {
     int num_a = 0;                  //numero di parametri automatici
 
     std::map<std::string, bool> options = {
-        {"faster", false},
-        {"approx", false},
-        {"complex", false},
-        {"retta", false},
-        {"save", false},
-        {"plot", false}
+        {"faster", false},      // fa più veloce
+        {"approx", false},      // approssima i risultati con le giuste cifre significative
+        {"complex", false},     // mostra i "passaggi intermedi" nella minimizzazione del chi quadro
+        {"retta", false},       // obbliga ad usare il metodo 'linear_mode' ad ogni 'cicle_programms'
+        {"save", false},        // salva i risultati nel file contenente i dati solo se il chi quadro migliora rispetto a quello presente nel file (oppure se non presente)
+        {"save!", false},       // salva i risultati nel file contenente i dati in ogni caso
+        {"plot", false}         // genera i grafici
     };
 
     input(argc, argv, par_best, num_a, options, x, sigma_x, y, sigma_y);
@@ -43,7 +44,7 @@ int main(int argc, char* argv[]) {
 
     //------------SALVATAGGIO DEI RISULTATI-----------------
 
-    if (options["save"])
+    if (options["save!"] || (options["save"] && improved(std::string(argv[1]), par_best)))
     {
         //salvo i risultati nel file di testo
         writeFile(std::string(argv[1]), x, sigma_x, y, sigma_y, par_best, options["approx"], std::string(argv[par_best.size() + 2]));

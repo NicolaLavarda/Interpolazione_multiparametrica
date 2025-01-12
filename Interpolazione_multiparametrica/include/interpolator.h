@@ -36,6 +36,24 @@ private:
     // Dati recuperati dal file '.txt'
     std::vector<double> x, sigma_x, y, sigma_y;
 
+    // Membro privato per l'espressione, simboli e parser
+    typedef exprtk::symbol_table<double> symbol_table_t;
+    typedef exprtk::expression<double> expression_t;
+    typedef exprtk::parser<double> parser_t;
+
+    // Dichiarazione globale per l'espressione, simboli e parser
+    symbol_table_t symbol_table;
+    expression_t expression;
+    parser_t parser;
+
+    // Variabili per 'setExpression'
+    double x_i = 0.5;     //Devo inizializzare in qualche modo le variabili dell'espressione_interpolante (tanto vengono cambiate e riaggiornate ogni volta che viene richiamata la funzione 'f_chi_quadro')
+    double a = 1;
+    double b = 2;
+    double c = 3;
+    double d = 4;
+    double e = 5;
+
 };
 
 #endif

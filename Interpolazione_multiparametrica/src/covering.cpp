@@ -90,7 +90,7 @@ void covering::ricoprimento(vector<double>& par_best, int dimensione, bool is_on
 
 void covering::next() {
 
-    if (cicle == 1 && k < 6)
+    if (par.size() < 3 && (cicle == 1 && k < 6))        //solo per 1 o 2 parametri altrimenti diventa troppo pesante
     {
         //lascio "spazio" al primo ciclo per cercare in largo
         ++livello;

@@ -67,12 +67,12 @@ void linear_mode::research(vector<double> par_in, bool& errore_lin, bool& ricerc
         catch (const out_of_range& e)
         {
             errore_lin = true;              //Motivo per non usare mai più il metodo della retta
-            cerr << "errore trasposta in 'linear_mode': " << e.what() << endl;
+            cerr << "error transposed matrix in 'linear_mode': " << e.what() << endl;
         }
         catch (const invalid_argument& e)
         {
             errore_lin = true;              //Motivo per non usare mai più il metodo della retta
-            cerr << "errore trasposta in 'linear_mode': " << e.what() << endl;
+            cerr << "error transposed matrix in 'linear_mode': " << e.what() << endl;
         }
 
 
@@ -83,12 +83,12 @@ void linear_mode::research(vector<double> par_in, bool& errore_lin, bool& ricerc
             }
             catch (const invalid_argument& e) {
                 errore_lin = true;              //Motivo per non usare mai più il metodo della retta
-                cerr << "Errore in linearFit: " << e.what() << endl;
+                cerr << "Error in linearFit: " << e.what() << endl;
                 return;
             }
             catch (const runtime_error& e) {
                 errore_lin = true;              //Motivo per non usare mai più il metodo della retta
-                cerr << "Errore in linearFit: " << e.what() << endl;
+                cerr << "Error in linearFit: " << e.what() << endl;
                 return;
             }
         }
@@ -167,7 +167,7 @@ void linear_mode::research(vector<double> par_in, bool& errore_lin, bool& ricerc
 void linear_mode::linearFit(vector<double>& x, vector<double>& y, double& m, double& q) {
     // Controllo che i vettori abbiano la stessa dimensione e non siano vuoti
     if (x.size() != y.size() || x.empty()) {
-        throw invalid_argument("I vettori x e y devono avere la stessa dimensione e non essere vuoti.");
+        throw invalid_argument("Error in 'linearFit': The vectors x and y must have the same size and not be empty..");
     }
 
     int n = x.size();
@@ -184,7 +184,7 @@ void linear_mode::linearFit(vector<double>& x, vector<double>& y, double& m, dou
     // Calcolo di m e q
     double denominator = n * sum_xx - sum_x * sum_x;
     if (denominator == 0) {
-        throw runtime_error("Denominatore nullo. Interpolazione non definita.");
+        throw runtime_error("Error in 'linearFit': Null denominator. Interpolation not defined.");
     }
 
     m = (n * sum_xy - sum_x * sum_y) / denominator;
@@ -283,7 +283,7 @@ void linear_mode::bisezione_lin(vector<double>& par, vector<double> m, vector<do
 
             controllo_par_n++;
             if (controllo_par_n > 100)
-                throw runtime_error("Bisezione in metodo retta fallita");
+                throw runtime_error("Error in 'bisezione_lin': Bisection failed");
         }
 
     }

@@ -41,12 +41,15 @@ void PlotGenerator::compute_plot_function() {
 
     //primo grafico corrispondente al plot dei dati con funzione interpolante
     Canvas_grafici.push_back(new TCanvas("c1", "c1", 800, 600));
-    Canvas_grafici[0]->cd();
-    grafico_dati_interpolazione->Draw("a");
-    Canvas_grafici[0]->Update();
+
+    // Canvas update
+    canvas_plot_function(Canvas_grafici[0], Legend_grafici[0], grafico_dati_interpolazione);
 }
 
 void PlotGenerator::compute_plot_chi_distribution() {
+
+    if (par.size() != 2 && par.size() != 3)     //solo se ci sono 2 o 3 parametri (altrimenti non ha senso fare questo tipo di grafico)
+        return;
 
     //Calcolo gli errori sui parameteri per capire quanto grandi plottare i grafici sulle distrubuzioni del chi quadro
     vector<double> sigma_par;
@@ -56,37 +59,35 @@ void PlotGenerator::compute_plot_chi_distribution() {
         sigma_par.push_back(chi_piu_uno_par_n(par, i, chi_piu_uno_val, range));
 
     //Creazione dei grafici di distribuzione del chi quadro
-    if (par.size() == 2 || par.size() == 3)
-        plot_chi_distribution(grafici_chi2, par, sigma_par);
+    plot_chi_distribution(grafici_chi2, par, sigma_par);
 
     //grafici distribuzioni del chi_quadro
-    if (par.size() == 2 || par.size() == 3)     //solo se ci sono 2 o 3 parametri (altrimenti non ha senso fare questo tipo di grafico)
+    for (int i = 0; i < grafici_chi2.size(); i++)
     {
-        for (int i = 0; i < grafici_chi2.size(); i++)
-        {
-            string name_canvas = "c" + to_string(i + 2);
-            Canvas_grafici.push_back(new TCanvas(name_canvas.c_str(), name_canvas.c_str(), 800, 600));
+        string name_canvas = "c" + to_string(i + 2);
+        Canvas_grafici.push_back(new TCanvas(name_canvas.c_str(), name_canvas.c_str(), 800, 600));
 
-            canvas_chi_distribution(Canvas_grafici[i + 1], grafici_chi2[i], par, sigma_par, i);    // aggiungo le linee a 1 sigma e salvo i grafici
-        }
+        // Canvas update
+        canvas_chi_distribution(Canvas_grafici[i + 1], Legend_grafici[i + 1], grafici_chi2[i], par, sigma_par, i);    // aggiungo le linee a 1 sigma e salvo i grafici
     }
 }
 
 void PlotGenerator::compute_plot_Residuals() {
 
+    if (sigma_y.size() == 0)
+        return;
+
     //Creazione dei grafici dei residui (residui x, residui y e residui xy)
     plot_residui(grafici_residui, par);
 
     //grafici dei residui
-    if (sigma_y.size() != 0)
+    for (int i = 0; i < grafici_residui.size(); i++)
     {
-        for (int i = 0; i < grafici_residui.size(); i++)
-        {
-            string name_canvas = "c" + to_string(i + 2 + grafici_chi2.size());
-            Canvas_grafici.push_back(new TCanvas(name_canvas.c_str(), name_canvas.c_str(), 800, 600));
+        string name_canvas = "c" + to_string(i + 2 + grafici_chi2.size());
+        Canvas_grafici.push_back(new TCanvas(name_canvas.c_str(), name_canvas.c_str(), 800, 600));
 
-            canvas_residui(Canvas_grafici[i + 1 + grafici_chi2.size()], grafici_residui[i], i);
-        }
+        // Canvas update
+        canvas_residui(Canvas_grafici[i + 1 + grafici_chi2.size()], Legend_grafici[i + 1 + grafici_chi2.size()], grafici_residui[i], i);
     }
 }
 
@@ -103,40 +104,6 @@ void PlotGenerator::save(string format_file) {
 
 }
 
-
-//Creazione griglia valori chi_quadro al variare dei parametri (mappe colore)
-vector<vector<double>> PlotGenerator::calcolo_matrice_chi_quadri(vector<double> par, vector<double> sigma_par,double num_sigma, double punti_per_parametro, int primo_par, int secondo_par) {
-
-    vector<double> par_i, par_f, passo_par;
-
-    for (int i = 0; i < par.size(); i++)
-    {
-        par_i.push_back(par[i] - num_sigma * sigma_par[i]);
-        par_f.push_back(par[i] + num_sigma * sigma_par[i]);
-        passo_par.push_back((par_f[i] - par_i[i]) / punti_per_parametro);
-        //cout << par_i[i] << "\t" << par_f[i] << "\t" << passo_par[i] << endl;
-    }
-
-    //Creazione griglia scansione completa definitiva da graficare --------------------------------------------------------------------------
-
-    vector<vector<double>> p1p2chi2(3);     // è un vettore formato da 3 vettori dove il primo indica il primo_par, il secondo il secondo_par e il terzo i relativi chi_quadri
-
-    for (double i = par_i[primo_par]; i <= par_f[primo_par] + fabs(par_f[primo_par]) * 0.00000001; i += passo_par[primo_par])
-    {
-        for (double j = par_i[secondo_par]; j <= par_f[secondo_par] + fabs(par_f[secondo_par]) * 0.00000001; j += passo_par[secondo_par])
-        {
-            p1p2chi2[0].push_back(i);
-            p1p2chi2[1].push_back(j);
-            vector<double> par_chi = par;
-            par_chi[primo_par] = i;
-            par_chi[secondo_par] = j;
-            p1p2chi2[2].push_back(i_generator.fChiQuadro(par_chi));
-            //cout << i << "\t" << j << "\t" << i_generator.fChiQuadro(par_chi) << endl;
-        }
-    }
-
-    return p1p2chi2;
-}
 
 
 //Grafico dati e funzione interpolante
@@ -187,9 +154,9 @@ void PlotGenerator::plot_function(TMultiGraph*& grafico_dati_interpolazione, vec
     funzione_interpolante_dati->SetLineWidth(1);
 
     auto legend = new TLegend(0.7, 0.85, 0.95, 0.95);
-    legend->AddEntry(dati_plot, "Dati sperimentali", "p");
+    legend->AddEntry(dati_plot, "Dati sperimentali", "pe");
     legend->AddEntry(funzione_interpolante_dati, "fit globale", "l");
-
+    Legend_grafici.push_back(legend);   // aggiungo la legenda al vettore delle legende di tutti i rispettivi canvas
 
     grafico_dati_interpolazione = new TMultiGraph("Grafico interpolazione", "Grafico interpolazione");
     grafico_dati_interpolazione->Add(funzione_interpolante_dati, "c");    //mette la funzione interpolante con i dati trovati
@@ -252,6 +219,10 @@ void PlotGenerator::plot_chi_distribution(vector<TH2F*>& grafici_chi2, vector<do
 
             grafico_1->SetMinimum(min_chi * 0.999999);
             grafico_1->SetMaximum(max_chi * 1.000001);
+
+            auto legend = new TLegend(0.7, 0.85, 0.95, 0.95);
+            legend->AddEntry(grafico_1, "Chi-squared distribution map", "f");
+            Legend_grafici.push_back(legend);   // aggiungo la legenda al vettore delle legende di tutti i rispettivi canvas
 
             grafici_chi2.push_back(grafico_1);      // riempio il vettore 'vector<TH2F*>& grafici_chi2'
 
@@ -337,14 +308,29 @@ void PlotGenerator::plot_residui(vector<TGraphErrors*>& grafici_residui, vector<
         dati_plot->SetMarkerSize(0.7);
         dati_plot->SetLineWidth(1);
 
+        auto legend = new TLegend(0.7, 0.85, 0.95, 0.95);
+        legend->AddEntry(dati_plot, "Residui dei dati sperimentali", "pe");
+        Legend_grafici.push_back(legend);   // aggiungo la legenda al vettore delle legende di tutti i rispettivi canvas
+
         grafici_residui.push_back(dati_plot);
     }
 
 }
 
 
+
+
+//Creazione del canvas del grafico dei dati e della funzione interpolante
+void PlotGenerator::canvas_plot_function(TCanvas*& c, TLegend*& legend, TMultiGraph*& grafico) {
+    c->cd();
+    grafico->Draw("a");
+    c->SetGrid();
+    legend->Draw("same");
+    c->Update();
+}
+
 //Creazione dei canvas dei grafici delle distribuzioni del chi quadro
-void PlotGenerator::canvas_chi_distribution(TCanvas*& c, TH2F*& grafico_chi2, vector<double> par, vector<double> sigma_par, int num_coppia) {
+void PlotGenerator::canvas_chi_distribution(TCanvas*& c, TLegend*& legend, TH2F*& grafico_chi2, vector<double> par, vector<double> sigma_par, int num_coppia) {
 
     c->cd();
 
@@ -398,16 +384,20 @@ void PlotGenerator::canvas_chi_distribution(TCanvas*& c, TH2F*& grafico_chi2, ve
     line3->Draw("same");
     line4->Draw("same");
 
-
+    // Disegna la legenda sul Canvas
+    //legend->Draw("same");
 
     c->Update();
 
 }
 
 //Creazione dei canvas dei grafici dei residui
-void PlotGenerator::canvas_residui(TCanvas*& c, TGraphErrors*& grafico_residui, int num_grafico) {
+void PlotGenerator::canvas_residui(TCanvas*& c, TLegend*& legend, TGraphErrors*& grafico_residui, int num_grafico) {
 
     c->cd();
+
+    // Imposta la griglia
+    c->SetGrid();
 
     // Disegna come prima cosa in "sfondo" il grafico (poi sopra le linee)
     grafico_residui->Draw("AP");
@@ -443,9 +433,47 @@ void PlotGenerator::canvas_residui(TCanvas*& c, TGraphErrors*& grafico_residui, 
     line_x->Draw("same");
     if (num_grafico == 2) line_y->Draw("same");
 
+    // Disegna la legenda sul Canvas
+    legend->Draw("same");
+
     c->Update();
 }
 
+
+
+//Creazione griglia valori chi_quadro al variare dei parametri (mappe colore)
+vector<vector<double>> PlotGenerator::calcolo_matrice_chi_quadri(vector<double> par, vector<double> sigma_par, double num_sigma, double punti_per_parametro, int primo_par, int secondo_par) {
+
+    vector<double> par_i, par_f, passo_par;
+
+    for (int i = 0; i < par.size(); i++)
+    {
+        par_i.push_back(par[i] - num_sigma * sigma_par[i]);
+        par_f.push_back(par[i] + num_sigma * sigma_par[i]);
+        passo_par.push_back((par_f[i] - par_i[i]) / punti_per_parametro);
+        //cout << par_i[i] << "\t" << par_f[i] << "\t" << passo_par[i] << endl;
+    }
+
+    //Creazione griglia scansione completa definitiva da graficare --------------------------------------------------------------------------
+
+    vector<vector<double>> p1p2chi2(3);     // è un vettore formato da 3 vettori dove il primo indica il primo_par, il secondo il secondo_par e il terzo i relativi chi_quadri
+
+    for (double i = par_i[primo_par]; i <= par_f[primo_par] + fabs(par_f[primo_par]) * 0.00000001; i += passo_par[primo_par])
+    {
+        for (double j = par_i[secondo_par]; j <= par_f[secondo_par] + fabs(par_f[secondo_par]) * 0.00000001; j += passo_par[secondo_par])
+        {
+            p1p2chi2[0].push_back(i);
+            p1p2chi2[1].push_back(j);
+            vector<double> par_chi = par;
+            par_chi[primo_par] = i;
+            par_chi[secondo_par] = j;
+            p1p2chi2[2].push_back(i_generator.fChiQuadro(par_chi));
+            //cout << i << "\t" << j << "\t" << i_generator.fChiQuadro(par_chi) << endl;
+        }
+    }
+
+    return p1p2chi2;
+}
 
 // Funzione per validare un'estensione
 bool PlotGenerator::isValidFormat(const std::string& extension) {

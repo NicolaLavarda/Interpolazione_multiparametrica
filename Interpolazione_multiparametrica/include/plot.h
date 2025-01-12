@@ -9,6 +9,7 @@
 #include <TMultiGraph.h>
 #include <TGraphErrors.h>
 #include <TH2F.h>
+#include <TLegend.h>
 #include <TCanvas.h>
 
 
@@ -27,7 +28,7 @@ public:
 
 private:
 
-    std::vector<std::vector<double>> calcolo_matrice_chi_quadri(std::vector<double> par, std::vector<double> sigma_par, double num_sigma, double punti_per_parametro, int primo_par, int secondo_par);
+    // Generation of Graphs
 
     void plot_function(TMultiGraph*& grafico_dati_interpolazione, std::vector<double> par);
 
@@ -35,11 +36,22 @@ private:
 
     void plot_residui(std::vector<TGraphErrors*>& grafici_residui, std::vector<double> par);
 
-    void canvas_chi_distribution(TCanvas*& c, TH2F*& grafico_chi2, std::vector<double> par, std::vector<double> sigma_par, int num_coppia);
 
-    void canvas_residui(TCanvas*& c, TGraphErrors*& grafico_residui, int num_grafico);
+    // Update Canvas
+
+    void canvas_plot_function(TCanvas*& c, TLegend*& legend, TMultiGraph*& grafico);
+
+    void canvas_chi_distribution(TCanvas*& c, TLegend*& legend, TH2F*& grafico_chi2, std::vector<double> par, std::vector<double> sigma_par, int num_coppia);
+
+    void canvas_residui(TCanvas*& c, TLegend*& legend, TGraphErrors*& grafico_residui, int num_grafico);
+
+
+    // Utilities
+
+    std::vector<std::vector<double>> calcolo_matrice_chi_quadri(std::vector<double> par, std::vector<double> sigma_par, double num_sigma, double punti_per_parametro, int primo_par, int secondo_par);
 
     bool isValidFormat(const std::string& extension);
+
 
     // Dati inizializzati dal costruttore
     std::vector<double> par;
@@ -53,7 +65,10 @@ private:
     std::vector<TH2F*> grafici_chi2;
     std::vector<TGraphErrors*> grafici_residui;
 
-    // Vettore che contiene i puntatori a tutti i canvas che mi servono
+    // Vettore di tutte le TLegend da associare ai relativi Canvas
+    std::vector<TLegend*> Legend_grafici;
+
+    // Vettore che contiene i puntatori a tutti i Canvas che mi servono
     std::vector<TCanvas*> Canvas_grafici;
 
     //formato del file in cui salvare i grafici

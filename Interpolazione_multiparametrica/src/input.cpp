@@ -5,6 +5,8 @@
 #include "interpolator.h"
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <vector>
 #include <string>
 #include <cstdlib>
@@ -99,5 +101,45 @@ void input(int argc, char* argv[], std::vector<double>& par,
     }
 
 
+}
+
+
+bool improved(const std::string filePath, std::vector<double> par_best) {
+    // Prendo l'istanza al Singleton 'Interpolator'
+    Interpolator& i_generator = Interpolator::getInstance();
+
+    return (GetChiSquared(filePath) > i_generator.fChiQuadro(par_best)) ? true : false;
+}
+
+
+double GetChiSquared(const std::string filePath) {
+    std::ifstream file(filePath);
+    if (!file.is_open()) {
+        std::cerr << "Unable to open the file: " << filePath << std::endl;
+        return -1; // codice di errore per file non trovato
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        // Cerca la riga che contiene "chi-squared"
+        if (line.find("chi-squared") != std::string::npos) {
+            // Trova il primo numero nella riga
+            std::istringstream iss(line);
+            std::string chiSquaredString;
+            double chiSquared;
+
+            // Leggi fino a trovare il valore
+            if (std::getline(iss, chiSquaredString, '=') &&
+                iss >> chiSquared) {
+                file.close();
+                return chiSquared;
+            }
+        }
+    }
+
+    // Se il file non contiene "chi-squared"
+    std::cerr << "Error: chi-squared not found in file " << filePath << std::endl;
+    file.close();
+    return 1e30; // non è stato trovato, quindi non è ancora mai stato processato il file, quindi di sicuro il chi quadro calcolato migliora il presente (che non c'è appunto)
 }
 

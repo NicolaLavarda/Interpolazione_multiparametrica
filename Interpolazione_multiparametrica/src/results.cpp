@@ -56,7 +56,7 @@ Result1::Result1()
     out << "----------------------------------------------------------------" << endl;
     //Calcolo errori e stampo a schermo i risultati
     double chi_piu_uno_val = 1; if (false) chi_piu_uno_val = chi_quadro_piu_uno(par.size());
-    out << "Parametri con errori al chi_quadro+1:" << endl;
+    out << "Parameters with errors at chi-squared+1:" << endl;
     for (int i = 0; i < par.size(); i++)
     {
         std::string nome(1, name_par[i]);
@@ -76,12 +76,12 @@ Result2::Result2()
 
     //Calcolo matrice covarianza (inversa dell'hessiana)
     std::vector<std::vector<double>> invH = inversa(H);
-    out << "Matrice di Covarianza: " << endl;
+    out << "Covariance Matrix: " << endl;
     stampaMatrice(invH, out);
 
     out << "----------------------------------------------------------------" << endl;
     //Calcolo errori e stampo a schermo i risultati
-    out << "Parametri con errori da matrice di covarianza:" << endl;
+    out << "Parameters with errors from the covariance matrix:" << endl;
     for (int i = 0; i < par.size(); i++)
     {
         std::string nome(1, name_par[i]);
@@ -102,7 +102,7 @@ Results::Results(std::vector<double> par_derived, bool approx_bool, int dim_x, s
     //Stampo anche le informazioni sul chi_quadro
     double GDL = dim_x - par.size();
     double p_value_val = p_value(chi_min, GDL);
-    out << "chi_quadro = " << setprecision(3) << chi_min << " / " << GDL << endl;
+    out << "chi-squared = " << setprecision(3) << chi_min << " / " << GDL << endl;
     out << "p_value = " << p_value_val << endl;
     if (p_value_val < 0.05)
         out << "Possible underestimation of errors" << endl;

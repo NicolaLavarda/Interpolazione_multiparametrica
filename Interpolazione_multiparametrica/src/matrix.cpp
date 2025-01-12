@@ -173,7 +173,7 @@ vector<vector<double>> inversa(const vector<vector<double>>& H) {
     // Controllo che la matrice sia quadrata
     for (const auto& row : H) {
         if (row.size() != n) {
-            throw invalid_argument("La matrice deve essere quadrata.");
+            throw invalid_argument("Error in 'matrix': The matrix must be square.");
         }
     }
 
@@ -182,7 +182,7 @@ vector<vector<double>> inversa(const vector<vector<double>>& H) {
 
     // Se il determinante è zero, la matrice non è invertibile
     if (det == 0) {
-        throw invalid_argument("La matrice non è invertibile (determinante = 0).");
+        throw invalid_argument("Error in 'matrix': The matrix is not invertible (determinant = 0).");
     }
 
     // Calcolo della matrice dei cofattori
