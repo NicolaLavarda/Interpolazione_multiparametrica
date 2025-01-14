@@ -18,7 +18,7 @@
 #include <TStyle.h>
 #include <TLegend.h>
 #include <TAxis.h>
-#include <TMath.h> // se dovessi usare funzioni matematiche di ROOT
+//#include <TMath.h>      // se dovessi usare funzioni matematiche di ROOT
 #include <TLine.h>      // Per le linee
 #include <TColor.h>     // Per i colori predefiniti
 #include <TString.h>    // Per usare Form()
@@ -120,9 +120,6 @@ void PlotGenerator::plot_function(TMultiGraph*& grafico_dati_interpolazione, vec
         dati_plot->SetPointError(i, err_x, err_y);
     }
 
-    dati_plot->SetTitle("Grafico interpolazione");
-    dati_plot->GetXaxis()->SetTitle("asse x");
-    dati_plot->GetYaxis()->SetTitle("asse y");
     dati_plot->SetMarkerStyle(8);
     dati_plot->SetMarkerSize(0.7);
     dati_plot->SetLineWidth(1);
@@ -154,13 +151,17 @@ void PlotGenerator::plot_function(TMultiGraph*& grafico_dati_interpolazione, vec
     funzione_interpolante_dati->SetLineWidth(1);
 
     auto legend = new TLegend(0.7, 0.85, 0.95, 0.95);
-    legend->AddEntry(dati_plot, "Dati sperimentali", "pe");
-    legend->AddEntry(funzione_interpolante_dati, "fit globale", "l");
+    legend->AddEntry(dati_plot, "Experimental Data", "pe");
+    legend->AddEntry(funzione_interpolante_dati, "Global Fit", "l");
     Legend_grafici.push_back(legend);   // aggiungo la legenda al vettore delle legende di tutti i rispettivi canvas
 
-    grafico_dati_interpolazione = new TMultiGraph("Grafico interpolazione", "Grafico interpolazione");
+    grafico_dati_interpolazione = new TMultiGraph("Interpolation Plot", "Interpolation Plot");
     grafico_dati_interpolazione->Add(funzione_interpolante_dati, "c");    //mette la funzione interpolante con i dati trovati
     grafico_dati_interpolazione->Add(dati_plot, "p");     //mette i punti dei dati con le loro barre d'errore
+
+    grafico_dati_interpolazione->SetTitle("Interpolation Plot");
+    grafico_dati_interpolazione->GetXaxis()->SetTitle("X-axis");
+    grafico_dati_interpolazione->GetYaxis()->SetTitle("Y-axis");
 
 }
 
@@ -170,10 +171,10 @@ void PlotGenerator::plot_chi_distribution(vector<TH2F*>& grafici_chi2, vector<do
     if (par.size() < 4)     //solo se ci sono 2 o 3 parametri (altrimenti non ha senso fare questo tipo di grafico)
     {
         //nome dei grafici
-        vector<string> nome_grafico;
-        nome_grafico.push_back("Parametri_a-b");
-        nome_grafico.push_back("Parametri_b-c");
-        nome_grafico.push_back("Parametri_c-a");
+        vector<string> name_base_graph = { "a-b","b-c","c-a" };     // Nome dell'istogramma
+        vector<string> nome_grafico;                                // Titolo dell'istogramma
+        for (size_t i = 0; i < name_base_graph.size(); i++)
+            nome_grafico.emplace_back("#chi^{2} map for parameters " + name_base_graph[i]);
 
         for (int g = 0; g < 3; g++)
         {
@@ -193,7 +194,7 @@ void PlotGenerator::plot_chi_distribution(vector<TH2F*>& grafici_chi2, vector<do
             auto max_chi = *max_element(p1p2chi2[2].begin(), p1p2chi2[2].end());
 
             auto grafico_1 = new TH2F(
-                nome_grafico[g].c_str(),              // Nome dell'istogramma
+                name_base_graph[g].c_str(),           // Nome dell'istogramma
                 nome_grafico[g].c_str(),              // Titolo dell'istogramma
                 punti_per_parametro,          // Numero di bin sull'asse x
                 par_1i,                       // Estensione minima sull'asse x
@@ -213,15 +214,18 @@ void PlotGenerator::plot_chi_distribution(vector<TH2F*>& grafici_chi2, vector<do
 
             grafico_1->SetContour(1000);        //quantifica quanto viene "sfumata" la colorazione del grafico
 
-            grafico_1->GetXaxis()->SetTitle("Asse x");
-            grafico_1->GetYaxis()->SetTitle("Asse y");
-            grafico_1->GetZaxis()->SetTitle("Chi Quadri");
+            string xTitle = "Parameter " + string(1, name_base_graph[g][0]);
+            string yTitle = "Parameter " + string(1, name_base_graph[g][2]);
+            string zTitle = "#chi^{2}";
+            grafico_1->GetXaxis()->SetTitle(xTitle.c_str());
+            grafico_1->GetYaxis()->SetTitle(yTitle.c_str());
+            grafico_1->GetZaxis()->SetTitle(zTitle.c_str());
 
             grafico_1->SetMinimum(min_chi * 0.999999);
             grafico_1->SetMaximum(max_chi * 1.000001);
 
             auto legend = new TLegend(0.7, 0.85, 0.95, 0.95);
-            legend->AddEntry(grafico_1, "Chi-squared distribution map", "f");
+            legend->AddEntry(grafico_1, "#chi^{2} distribution map", "f");
             Legend_grafici.push_back(legend);   // aggiungo la legenda al vettore delle legende di tutti i rispettivi canvas
 
             grafici_chi2.push_back(grafico_1);      // riempio il vettore 'vector<TH2F*>& grafici_chi2'
@@ -271,9 +275,9 @@ void PlotGenerator::plot_residui(vector<TGraphErrors*>& grafici_residui, vector<
                 val_y = residuo_x;
                 err_x = 0;
                 err_y = (sigma_x.size() != 0) ? sigma_x[i] : 0;
-                title = "Grafico Residui x";
-                asse_x = "y";
-                asse_y = "residui x";
+                title = "Residual Plot for X";
+                asse_x = "Y-axis";
+                asse_y = "Residual X";
             }
             else if (g == 1)         //residui in y
             {
@@ -281,9 +285,9 @@ void PlotGenerator::plot_residui(vector<TGraphErrors*>& grafici_residui, vector<
                 val_y = residuo_y;
                 err_x = 0;
                 err_y = (sigma_y.size() != 0) ? sigma_y[i] : 0;
-                title = "Grafico Residui y";
-                asse_x = "x";
-                asse_y = "residui y";
+                title = "Residual Plot for Y";
+                asse_x = "X-axis";
+                asse_y = "Residual Y";
                 //cout << val_x << "\t" << val_y << "\t" << err_x << "\t" << err_y << endl;
             }
             else                     //residui in x e y
@@ -292,9 +296,9 @@ void PlotGenerator::plot_residui(vector<TGraphErrors*>& grafici_residui, vector<
                 val_y = residuo_y;
                 err_x = (sigma_x.size() != 0) ? sigma_x[i] : 0;
                 err_y = (sigma_y.size() != 0) ? sigma_y[i] : 0;
-                title = "Grafico Residui x-y";
-                asse_x = "residui x";
-                asse_y = "residui y";
+                title = "Residual Plot for X-Y";
+                asse_x = "Residual X";
+                asse_y = "Residual Y";
             }
 
             dati_plot->SetPoint(i, val_x, val_y);
@@ -309,7 +313,7 @@ void PlotGenerator::plot_residui(vector<TGraphErrors*>& grafici_residui, vector<
         dati_plot->SetLineWidth(1);
 
         auto legend = new TLegend(0.7, 0.85, 0.95, 0.95);
-        legend->AddEntry(dati_plot, "Residui dei dati sperimentali", "pe");
+        legend->AddEntry(dati_plot, "Experimental Data Residuals", "pe");
         Legend_grafici.push_back(legend);   // aggiungo la legenda al vettore delle legende di tutti i rispettivi canvas
 
         grafici_residui.push_back(dati_plot);
@@ -485,3 +489,4 @@ bool PlotGenerator::isValidFormat(const std::string& extension) {
     // Controlla se l'estensione è nella lista di quelle valide
     return validExtensions.find(extension) != validExtensions.end();
 }
+

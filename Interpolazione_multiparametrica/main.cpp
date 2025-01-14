@@ -32,7 +32,9 @@ int main(int argc, char* argv[]) {
     //------------RICERCA AUTOMATICA--------------------
     
     if (num_a != 0) {
-        parametri_auto(par_best, options["complex"]);
+        AutomaticResearch Auto(par_best, options["complex"]);
+        Auto.beginJob();
+        Auto.endJob(par_best);
     }
 
     //------------ESECUZIONE PROGRAMMA------------------
@@ -40,7 +42,7 @@ int main(int argc, char* argv[]) {
     ChiSquareMinimizer Optimizer(options, x_size);
     Optimizer.begin  (par_best);
     Optimizer.compute(par_best);
-    Optimizer.end    (par_best);    
+    Optimizer.end    (par_best);
 
     //------------SALVATAGGIO DEI RISULTATI-----------------
 

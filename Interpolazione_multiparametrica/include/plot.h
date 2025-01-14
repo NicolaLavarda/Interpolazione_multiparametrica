@@ -71,7 +71,7 @@ private:
     // Vettore che contiene i puntatori a tutti i Canvas che mi servono
     std::vector<TCanvas*> Canvas_grafici;
 
-    //formato del file in cui salvare i grafici
+    //formato del file in cui salvare i grafici (con valore di default modificabile da 'save("...")')
     std::string format = ".png";
 
     //Nome base di tutti i grafici

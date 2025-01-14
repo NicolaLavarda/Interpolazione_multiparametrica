@@ -1,7 +1,8 @@
 #include "automatic_research.h"
 
-#include "gradient_descent_algorithm.h"
 #include "interpolator.h"
+#include "gradient_descent_algorithm.h"
+//#include "ThreadPool.h"
 
 #include <iostream>
 #include <vector>
@@ -9,51 +10,45 @@
 
 using namespace std;
 
+AutomaticResearch::AutomaticResearch(std::vector<double> par, bool output):
+    par(par), output(output)
+{
+    auto it = find(par.begin(), par.end(), 0);      // restituisce un puntatore al primo elemento uguale a 0 (parametro automatico)
+    first = distance(par.begin(), it);          // restituisce l'indice di tale elemento
+}
 
-//Ricerca automatica logaritmica
-void ricerca_auto(vector<double>& par, vector<double>& par_auto, vector<double>& par_def, int n) {
-    //mettere 'par_auto=par' e 'par_auto=par' prima della chiamata della funzione
 
-    // Riferimento all'istanza Singleton
-    Interpolator& i_generator = Interpolator::getInstance();
-
+void AutomaticResearch::compute(std::vector<double>& par_auto, int n) {
     static double chi_min_auto = 1e25;
-    static vector<double> sec_best_par = par;
     static double min = -1e10;
     static double max = 1e10;
-    static double min_ordine = 0.001;
+    static double min_ordine = 0.001;       //dev'essere positivo (>0)
     static bool salita = true;         //Sto scorrendo in "salita" i parametri fino ad arrivare all'ultimo per poi cominciare a tornare indietro per migliorarli uno a uno "all'indietro"
-    static int par_size = par.size();
+    static int par_size = par_auto.size();
 
-    if (n >= par_size) {        // || (par_auto[n] != 0 && par[n] == 0)
+    if (n >= par_size) {
         salita = false;
         return;
     }
 
-
     double a = min;
     while (a <= max)
     {
-        //cout << "a = " << a << "e il max = " << max << endl;
-        //if (a <= max) cout << "ma che cazz..." << endl;
         int k = 0;
         if (n < par_size)
         {
             if (par[n] == 0) {
                 par_auto[n] = a;
-                //n++;
-                //cout << "messo pari ad a e con n = " << n << endl;
             }
             else {          //if (salita)
                 while (n + k < par_size && par[n + k] != 0)
                     k++;
-                //cout << "Sono a n = " << n << " e k = " << k << endl;
                 k--;
             }
         }
 
         //if (salita)
-        ricerca_auto(par, par_auto, par_def, n + 1 + k);
+        compute(par_auto, n + 1 + k);
 
         //Se sono in 'salita', qui sono arrivato all'ultimo parametro e ora comincio a tornare indietro a migliorare quelli precedenti (se sono parametri automatici "a")
 
@@ -61,60 +56,32 @@ void ricerca_auto(vector<double>& par, vector<double>& par_auto, vector<double>&
 
         double sum_chi = i_generator.fChiQuadro(par_auto);
 
-        //Debug
-        if (false) {
-            cout << "n = " << n << endl;
-            for (int k = 0; k < par_size; k++)
-            {
-                cout << par_auto[k] << "\t";
-            }
-            cout << endl;
-            cout << sum_chi << endl;
-        }
-
-
         if (sum_chi <= chi_min_auto)
         {
-            sec_best_par = par_def;         // Il secondo miglior set di parametri
-            par_def = par_auto;             // Il miglior set di parametri
+            par_improved.push_back(par_auto);         // parametri di volta in volta migliorati
             chi_min_auto = sum_chi;
-            /*
-            if (min_ordine > 1e-5 && (a >= -min_ordine - 1e-9 && a <= -min_ordine + 1e-9))
-                min_ordine /= 10;
-            */
-            //cout << " --> yep" << endl;
         }
 
         // Devo andare da -1e10 a 1e10 togliendo [-1e-2;+1e-2]
         (a < 0) ? a /= 10 : a *= 10;
         if (a >= -min_ordine / 10 - 1e-9 && a <= -min_ordine / 10 + 1e-9)
             a = min_ordine;
-        //cout << "a = " << a << endl;
     }
-    //cout << "n = " << n << "e sono uscito dal while" << endl;
 
     //Sono uscito dal while e verifico se sono proprio alla fine
-    auto it = find(par.begin(), par.end(), 0);      // restituisce un puntatore al primo elemento uguale a 0 (parametro automatico)
-    int index = distance(par.begin(), it);          // restituisce l'indice di tale elemento
-
-    if (n == index)     //Sono alla fine di tutta l'esecuzione della funzione
+    if (n == first)
     {
-        par = par_def;              // Alla fine 'par'      sono i migliori parametri
-        par_auto = sec_best_par;    // Alla fine 'par_auto' sono i secondi migliori parametri
+        //Sono alla fine di tutta l'esecuzione della funzione
     }
 }
 
 
-void parametri_auto(vector<double>& par, bool output) {
-
-    // Riferimento all'istanza Singleton
-    Interpolator& i_generator = Interpolator::getInstance();
-
+void AutomaticResearch::beginJob() {
     //Ricerca automatica logaritmica
-    vector<double> par_auto = par;
-    vector<double> par_def = par;
-    ricerca_auto(par, par_auto, par_def, 0);
-
+    std::vector<double> par_auto = par;
+    compute(par_auto, 0);
+    par = par_improved.back();
+    
     double chi_quadro_min = i_generator.fChiQuadro(par);
     if (output)
     {
@@ -125,21 +92,30 @@ void parametri_auto(vector<double>& par, bool output) {
         cout << endl << "Chi quadro = " << chi_quadro_min << endl;
     }
 
+    // Creo un pool di multi-thread
+    //ThreadPool pool;
 
-    //Cerco di capire se è meglio 'par' o 'par_auto' con algoritmo di bisezione ('par_auto' è il secondo migliore)
-    vector<double> passo_i1;
-    vector<double> passo_i2;
+    // Aggiungo task al pool
+    int num_it = (par_improved.size() < 10) ? par_improved.size() : 10;
+    for (int i = 0; i < num_it; i++)
+    {
+        //analysis.emplace_back(pool.enqueue(discesa_gradiente, i, 10));
+    }
 
-    vector<double> par_i1 = par;        //le due alternative
-    vector<double> par_i2 = par_auto;   //
+    // Recupero i risultati
+    for (int i = 0; i < num_it; i++) {
+        //std::cout << "Risultato: " << analysis[i].get() << std::endl;
+    }
 
-    //algoritmo_bisezione(par_i1, par_i1, passo_i1, 0);
+    //Cerco di capire se è meglio 'par' o 'par_i2' con "discesa_gradiente" ('par_i2' è il secondo migliore)
+    std::vector<double> par_i1 = par;                                   // le due alternative
+    std::vector<double> par_i2 = par_improved[par_improved.size()-2];   //
+
     double sensibility0 = 1;    // variazione iniziale del 100%
-    gradient_descent_algorithm(par_i1, chi_quadro_min, sensibility0);    //Miglioro 'par_i1' con metodo 'discesa_gradiente'
+    gradient_descent_algorithm(par_i1, chi_quadro_min, sensibility0);    //Miglioro 'par_i1' con metodo "discesa_gradiente"
 
-    //algoritmo_bisezione(par_i2, par_i2, passo_i1, 0);
     double sensibility1 = 1;    // variazione iniziale del 100%
-    gradient_descent_algorithm(par_i2, chi_quadro_min, sensibility1);    //Miglioro 'par_i2' con metodo 'discesa_gradiente'
+    gradient_descent_algorithm(par_i2, chi_quadro_min, sensibility1);    //Miglioro 'par_i2' con metodo "discesa_gradiente"
 
     par = (i_generator.fChiQuadro(par_i1) < i_generator.fChiQuadro(par_i2)) ? par_i1 : par_i2;      //Controllo se è meglio 'par_i1' o 'par_i2'
     chi_quadro_min = i_generator.fChiQuadro(par);
@@ -152,4 +128,9 @@ void parametri_auto(vector<double>& par, bool output) {
 
         cout << endl << "Chi quadro = " << chi_quadro_min << endl;
     }
+}
+
+
+void AutomaticResearch::endJob(std::vector<double>& par_best) {
+    par_best = par;
 }

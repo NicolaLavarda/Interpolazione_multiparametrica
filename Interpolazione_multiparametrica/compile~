@@ -1,0 +1,2 @@
+rm -f main
+c++ -Iinclude `root-config --cflags` -o interpolate main.cpp src/*.cpp `root-config --libs`
