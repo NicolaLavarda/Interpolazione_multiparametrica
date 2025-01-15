@@ -22,8 +22,6 @@ Results_base::Results_base(std::vector<double> par_base, bool approx_bool, std::
     par(par_base), approx_bool(approx_bool) , out(output)
 {
     chi_min = i_generator.fChiQuadro(par);
-    //double sensibility = 0.01;
-    //gradient_descent_algorithm(par, chi_min, sensibility);
 }
 
 void Results_base::general_result(double valore, double errore, std::string nome, bool arrotondamento) {

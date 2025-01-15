@@ -17,10 +17,7 @@ using namespace std;
 // in modo da creare un oggetto temporaneo che migliori i parametri con metodo di bisezione
 
 
-bisection_algorithm::bisection_algorithm(vector<double>& par_best, const vector<double> step, double& chi_quadro_min) :
-    par_base(par_best), step(step)
-{
-    chi_min = i_generator.fChiQuadro(par_best);
+bisection_algorithm::bisection_algorithm(vector<double>& par_best, const vector<double> step, double& chi_quadro_min) {
 
     //Preservo i parametri per controlalre alla fine se il chi quadro è stato effettivamente migliorato (ovvio, ma per doppio check)
     vector<double> par_prec = par_best;

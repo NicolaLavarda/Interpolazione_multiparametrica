@@ -5,6 +5,7 @@
 #include "util.h"
 #include <vector>
 #include <string>
+#include <mutex>
 
 // Interpolator è un Singleton
 class Interpolator {
@@ -21,8 +22,17 @@ public:
     void setData(std::vector<double>& x_val, std::vector<double>& sigma_x_val,
                  std::vector<double>& y_val, std::vector<double>& sigma_y_val);
 
+
+    // Effettiva implementazione della funzione 'fChiQuadro'
+    double fChiQuadroImpl(std::vector<double> par);
+
+    // Funzione 'fChiQuadro' thread-safe
+    double fChiQuadro(const std::vector<double>& par) {
+        std::lock_guard<std::mutex> lock(mutex_); // Protezione del blocco
+        return fChiQuadroImpl(par);
+    }
+
     // Funzionalità principali
-    double fChiQuadro(std::vector<double> par);
     double yFunction(std::vector<double> par, double x_i);
     double xFunction(std::vector<double> par, int i);
 
@@ -53,6 +63,8 @@ private:
     double c = 3;
     double d = 4;
     double e = 5;
+
+    std::mutex mutex_; // Mutex per proteggere fChiQuadro
 
 };
 

@@ -103,22 +103,18 @@ void AutomaticResearch::beginJob() {
     }
 
     // Recupero i risultati
-    for (int i = 0; i < num_it; i++) {
+    //for (int i = 0; i < num_it; i++) {
         //std::cout << "Risultato: " << analysis[i].get() << std::endl;
+    //}
+
+    double sensibility = 0.1;
+    //Cerco di capire qual è il miglior 'par' con "discesa_gradiente"
+    for (size_t i = 0; i < 5; i++)
+    {
+        par = par_improved[par_improved.size() - 1 - i];
+        gradient_descent_algorithm(par, chi_quadro_min, sensibility);
     }
 
-    //Cerco di capire se è meglio 'par' o 'par_i2' con "discesa_gradiente" ('par_i2' è il secondo migliore)
-    std::vector<double> par_i1 = par;                                   // le due alternative
-    std::vector<double> par_i2 = par_improved[par_improved.size()-2];   //
-
-    double sensibility0 = 1;    // variazione iniziale del 100%
-    gradient_descent_algorithm(par_i1, chi_quadro_min, sensibility0);    //Miglioro 'par_i1' con metodo "discesa_gradiente"
-
-    double sensibility1 = 1;    // variazione iniziale del 100%
-    gradient_descent_algorithm(par_i2, chi_quadro_min, sensibility1);    //Miglioro 'par_i2' con metodo "discesa_gradiente"
-
-    par = (i_generator.fChiQuadro(par_i1) < i_generator.fChiQuadro(par_i2)) ? par_i1 : par_i2;      //Controllo se è meglio 'par_i1' o 'par_i2'
-    chi_quadro_min = i_generator.fChiQuadro(par);
 
     if (output)
     {
@@ -134,3 +130,20 @@ void AutomaticResearch::beginJob() {
 void AutomaticResearch::endJob(std::vector<double>& par_best) {
     par_best = par;
 }
+
+
+
+/*
+//Cerco di capire se è meglio 'par' o 'par_i2' con "discesa_gradiente" ('par_i2' è il secondo migliore)
+    std::vector<double> par_i1 = par;                                   // le due alternative
+    std::vector<double> par_i2 = par_improved[par_improved.size()-2];   //
+
+    double sensibility0 = 1;    // variazione iniziale del 100%
+    gradient_descent_algorithm(par_i1, chi_quadro_min, sensibility0);    //Miglioro 'par_i1' con metodo "discesa_gradiente"
+
+    double sensibility1 = 1;    // variazione iniziale del 100%
+    gradient_descent_algorithm(par_i2, chi_quadro_min, sensibility1);    //Miglioro 'par_i2' con metodo "discesa_gradiente"
+
+    par = (i_generator.fChiQuadro(par_i1) < i_generator.fChiQuadro(par_i2)) ? par_i1 : par_i2;      //Controllo se è meglio 'par_i1' o 'par_i2'
+    chi_quadro_min = i_generator.fChiQuadro(par);
+*/

@@ -10,7 +10,7 @@
 
 
 
-// Chiamare nel programma 'gradient_descent_algorithm(par_best, step, chi_quadro_min);'
+// Chiamare nel programma 'gradient_descent_algorithm(par_best, chi_quadro_min, sensibility);'
 // in modo da creare un oggetto temporaneo che migliori i parametri con metodo di bisezione
 
 
@@ -21,13 +21,12 @@ gradient_descent_algorithm::gradient_descent_algorithm(std::vector<double>& par,
 
     double tasso_apprendimento = sensibility;        //es. sensibility=0.1 -> all'inizio a passi del 10% dei valori
     double tollerance = 0.001;
-    int max_iter = 300;
 
     double grad0 = i_generator.fChiQuadro(par);
     double grad1 = grad0;
     bool migliorato = false;
 
-    for (int iter = 0; iter < max_iter; ++iter) {
+    for (int iter = 0; iter < 300; ++iter) {
 
         std::vector<double> grad = grad_f_chi_quadro(par);  // Calcola il gradiente
 
@@ -72,6 +71,12 @@ gradient_descent_algorithm::gradient_descent_algorithm(std::vector<double>& par,
         }
     }
 
+    /*
+    for (size_t i = 0; i < par.size(); i++)
+        std::cout << par[i] << "\t";
+    std::cout << std::endl;
+    */
+
     //Verifico siano effettivamente migliori i parametri (chi_quadro minore)
     double chi_grad = i_generator.fChiQuadro(par);
     double chi_prec = i_generator.fChiQuadro(par_prec);
@@ -90,17 +95,15 @@ gradient_descent_algorithm::gradient_descent_algorithm(std::vector<double>& par,
 }
 
 
-// gradiente della funzione chi qaudro (h_gen% del valore)
+// gradiente della funzione chi quadro
 std::vector<double> gradient_descent_algorithm::grad_f_chi_quadro(const std::vector<double> par) {
-    std::vector<double> grad(par.size());
-    double min_par = par[0];
-    for (int k = 0; k < par.size(); k++)
-        min_par = (std::fabs(par[k]) < min_par) ? std::fabs(par[k]) : min_par;
+    std::vector<double> grad;
 
-    double h = 1e-3 * min_par;
-    //cout << endl << "calcolo gradiente:" << endl;
     // Calcolo della derivata parziale per ogni parametro
     for (size_t i = 0; i < par.size(); ++i) {
+        
+        double h = 1e-8 * (fabs(par[i]) < 1) ? 1 : fabs(par[i]);      // 1e-8 è circa sqrt(epsilon) con epsilon= 2.22e-16 che è la precisione in double
+
         // Crea una copia del vettore dei parametri
         std::vector<double> par_plus = par;
         std::vector<double> par_minus = par;
@@ -110,7 +113,7 @@ std::vector<double> gradient_descent_algorithm::grad_f_chi_quadro(const std::vec
         par_minus[i] -= h;
 
         // Approssima la derivata con la differenza centrale
-        grad[i] = (i_generator.fChiQuadro(par_plus) - i_generator.fChiQuadro(par_minus)) / (2 * h);
+        grad.emplace_back((i_generator.fChiQuadro(par_plus) - i_generator.fChiQuadro(par_minus)) / (2 * h));
         //cout <<par_plus[i] << "\t" << par_minus[i] << "\t" << i_generator.fChiQuadro(par_plus) << "\t" << i_generator.fChiQuadro(par_minus) << "\t" << grad[i] << endl;
     }
 
