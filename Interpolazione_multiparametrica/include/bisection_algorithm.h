@@ -18,10 +18,6 @@ private:
 
     void bisection(std::vector<double> par, std::vector<double>& par_def, const std::vector<double> passo, int n);
 
-    std::vector<double> par_base;
-    std::vector<double> step;
-    double chi_min;
-
     // Riferimento all'istanza Singleton
     Interpolator& i_generator = Interpolator::getInstance();
 };

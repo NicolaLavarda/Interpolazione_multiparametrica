@@ -53,7 +53,7 @@ void Interpolator::setData(std::vector<double>& x_val, std::vector<double>& sigm
 }
 
 
-double Interpolator::fChiQuadro(std::vector<double> par) {
+double Interpolator::fChiQuadroImpl(std::vector<double> par) {
 
     //I parametri basta riassegnarli una volta alla chiamata della funzione, la x invece ovviamente va riassegnata ad ogni iterazione del ciclo for per il calcolo del chi quadro
     symbol_table.get_variable("a")->ref() = double(par[0]);

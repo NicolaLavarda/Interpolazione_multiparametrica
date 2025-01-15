@@ -1,6 +1,8 @@
 #define ChiSquareMinimizer_h
 #ifdef ChiSquareMinimizer_h
 
+#include "covering.h"
+
 #include <vector>
 #include <string>
 #include <map>
@@ -16,6 +18,11 @@ public:
 	void end(std::vector<double>& par_best);
 
 
+
+	void thread1(std::vector<double>& par_best);
+	void thread2(std::vector<double>& par_best);
+
+
 private:
 
 	bool faster, approx, complex, retta;	  // opzioni da riga di comando
@@ -27,6 +34,10 @@ private:
 	int cicle_programms = 0;        // Numero di cicli di riesecuzione del programma
 
 	int x_size;
+
+	//bool finish = false;
+
+	covering* c_generator = nullptr;
 
 };
 

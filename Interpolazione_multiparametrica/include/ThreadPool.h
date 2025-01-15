@@ -14,6 +14,7 @@ class ThreadPool {
 public:
     ThreadPool();
 
+    // Funzione per aggiungere le tasks
     template <class F, class... Args>       // Per le classi template devono essere dichiarate ed implementate nello stesso file
     std::future<typename std::result_of<F(Args...)>::type> enqueue(F&& f, Args&&... args) {
         using return_type = typename std::result_of<F(Args...)>::type;
@@ -38,6 +39,8 @@ public:
         return res; // Restituisco il futuro
     }
 
+    int getTasksCompleted() const;
+
     ~ThreadPool();
 
 private:
@@ -48,6 +51,8 @@ private:
     std::mutex queueMutex;                           // Mutex per proteggere la coda
     std::condition_variable condition;               // Variabile di condizione per sincronizzazione
     std::atomic<bool> stop;                          // Flag per terminare il pool
+
+    std::atomic<int> tasksCompleted = 0;                 // Contatore delle task completate
 };
 
 #endif

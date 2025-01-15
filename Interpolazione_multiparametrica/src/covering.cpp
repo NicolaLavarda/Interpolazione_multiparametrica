@@ -1,6 +1,7 @@
 #include "covering.h"
 
 //#include "interpolator.h"
+#include "ThreadPool.h"
 #include "bisection_algorithm.h"
 #include "matrix.h"
 
@@ -8,14 +9,17 @@
 #include <cstdlib>
 #include <vector>
 #include <cmath>
-#include <string>
+//#include <string>
 #include <algorithm>  // per std::max_element
 
-using namespace std;
+#include <thread>
+#include <chrono>  // Per std::chrono::milliseconds
+
+//using namespace std;
 
 
 // costruttore di base
-covering::covering(vector<double> par_best, double chi_quadro_min, double cicle_programms, bool output, bool faster) :
+covering::covering(std::vector<double> par_best, double chi_quadro_min, double cicle_programms, bool output, bool faster) :
     par_best(par_best), chi_quadro_min(chi_quadro_min), cicle_programms(cicle_programms), output(output), faster(faster)
 {
 
@@ -31,6 +35,7 @@ covering::covering(vector<double> par_best, double chi_quadro_min, double cicle_
     for (int i = 0; i < par.size(); i++)
         passo.push_back(spostamento * ((fabs(par[i]) > 0.5) ? fabs(par[i]) : 2));        //spostamento * 2 se miniore di 0.5 in modo che il rispettivo 'passo' sia pari a 0.1*2=0.2 (che nella funzione diventerà un range semilargo 0.1)
 
+    pool = new ThreadPool();
 }
 
 void covering::status(int cicle_val, int k_val) {
@@ -38,36 +43,67 @@ void covering::status(int cicle_val, int k_val) {
     cicle = cicle_val;
     k = k_val;
 
-    if (!output) { cout << "\rNumber of program iterations: " << cicle_programms << flush; }
-    else          { cout << endl << "Livello " << cicle << "." << livello << ":";           }
+    if (!output) { std::cout << "\rNumber of program iterations: " << cicle_programms << flush; }
+    else          { std::cout << endl << "Livello " << cicle << "." << livello << ":";           }
 }
 
 // Funzione per generare i parallelepipedi n-dimensionali sulla "superficie" del livello corrente con passi diversi in ogni dimensione
-void covering::ricoprimento(vector<double>& par_best, int dimensione, bool is_on_surface) {
-    //vector<double> par_prov = par_matrix[cicle_programms - 1]; //non va bene 'static vector<double> par_prov = par;' perché altrimenti mi rimane anche per le "riesecuzioni del programma successive". Importante che sia esattamente così: se passassi in qualsiasi modo il vettore alla funzione fidati che non funziona perché poi cambia, fidati.
+void covering::ricoprimento(std::vector<double>& par_best, int dimensione, bool is_on_surface) {
+    
+    
+
+    /*
+    if (GetFinish()) {
+        std::cout << "enddddddddd" << std::endl;
+        return;     // concludo
+    }
+    */
 
     if (dimensione == par.size()) {
         if (is_on_surface) {
 
             //Algoritmo di bisezione --------------------------------------------------------------------
             
-            double sum_chi_p = 0;
-            vector<double> par_bis = par;                       // 'par' ha le coordinate giuste dell'attuale centro del cubo n-dimensionale in analisi, quindi dev'essere l'argomento della funzione, ma non può essere modificato (cosa che invece farebbe la funzione), quindi gli passo una copia
-            bisection_algorithm(par_bis, passo, sum_chi_p);
-            
-            //cout << par[0] << "\t" << par[1] << "\t" << sum_chi_p << endl;
+            std::vector<double> par_bis = par;                       // 'par' ha le coordinate giuste dell'attuale centro del cubo n-dimensionale in analisi, quindi dev'essere l'argomento della funzione, ma non può essere modificato (cosa che invece farebbe la funzione), quindi gli passo una copia
+            std::vector<double> passo_bis = passo;
 
-            if (sum_chi_p < chi_quadro_min) {
+            auto lambda = [](std::vector<double> par_l, std::vector<double> passo_l) -> std::vector<double> {
 
-                if (output)
-                    cout << "\t" << sum_chi_p << " ";
+                std::vector<double> par_in = par_l;
+                std::vector<double> passo_in = passo_l;
 
-                par_best = par_bis;      // 'par_best' sono ora quelli migliorati con l'algoritmo di bisezione (o al massimo i 'par')
-                chi_quadro_min = sum_chi_p;
+                double sum_chi_l = 0;
+                // Chiama la funzione originale
+                bisection_algorithm(par_in, passo_in, sum_chi_l);
 
-                chi_quadro.push_back(sum_chi_p);          //Lo metto nella main in modo da aggiungerlo solo alla fine di un livello di ricoprimento (in uno stesso livello può essere che rimanga miniore del "per mille")
-                livelli[livello]++;                       //Metto un valore diverso da 0 se in un livello riesco a migliorare il chi quadro
+                /*
+                for (size_t i = 0; i < par_l.size(); i++)
+                    std::cout << par_l[i] << "\t";
+                std::cout << sum_chi_l << std::endl;
+                */
+
+                std::vector<double> par_p = par_in;
+                
+                // Crea un nuovo vector con il valore aggiuntivo
+                par_p.push_back(sum_chi_l);
+                return par_p;
+                };
+
+            /*
+            if (GetFinish()) {
+                std::cout << "enddddddddd" << std::endl;
+                return;     // concludo
             }
+            */
+            static int counter = 0;
+            //std::cout << "finish = " << finish << std::endl;
+            if (counter < 500)    // se non devo terminare       !GetFinish()
+            {
+                // Aggiungo al pool di multi-thread come task la chiamata di una lambdafunction che ritorna i parametri migliorati da 'bisection_algorithm(par_bis, passo, sum_chi_p);'
+                analysis.emplace_back(pool->enqueue(lambda, par_bis, passo_bis));
+                counter++;
+            }
+
             //-------------------------------------------------------------------------------------------
         }
         return;
@@ -88,75 +124,119 @@ void covering::ricoprimento(vector<double>& par_best, int dimensione, bool is_on
 }
 
 
-void covering::next() {
+void covering::GetResults(std::vector<double>& par_best, const unsigned int time_milliseconds, const unsigned int min_tasksCompleted) {
 
-    if (par.size() < 3 && (cicle == 1 && k < 6))        //solo per 1 o 2 parametri altrimenti diventa troppo pesante
-    {
-        //lascio "spazio" al primo ciclo per cercare in largo
-        ++livello;
-        return;
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(time_milliseconds));
 
-    //Passaggio al ciclo successivo, altrimenti semplicemente passaggio al livello successivo
-    if ((livello > 1) && (livelli[livello] == 0 && (livelli[livello - 1] == 0 || (faster || livello > 4))))      //Per livelli 2, 3 e 4 è necessario che almeno gli ultimi due livelli non migliorino il chi quadro per passare al ciclo successivo [...] if (faster || livello > 4) //dal livello 5 in poi basta che un solo livello non migliori il chi quadro per passare al ciclo successivo (oppure se è attivo 'faster')
-    {
-        livello = 0;
-        if (cicle > 2)               //Per il secondo ciclo rimane 'spostamento' uguale al primo ciclo
-            spostamento /= 4;
-        par = par_best;
+    if (output) std::cout << std::endl << "Ho aspettato " << time_milliseconds << "ms" << std::endl;
 
-        livelli.clear();
-        livelli.assign(100, 0);     //livelli viene ripristinato
+    unsigned int tasksCompleted = pool->getTasksCompleted();
+    unsigned int tasksCompleted_min = min_tasksCompleted - std::thread::hardware_concurrency();  // Il distruttore di 'pool' fa completare le n=std::thread::hardware_concurrency() tasks in più in ogni caso
+    if (tasksCompleted < tasksCompleted_min) {
 
-        for (int i = 0; i < par.size(); i++)
-            passo[i] = (fabs(par[i]) > 0.5) ? fabs(par[i] * spostamento) : fabs(par[i] * 4 * spostamento);   //Riduco 'spostamento' e 'passo' per i livelli successivi (all'interno dello stesso 'cicle_programme')
+        unsigned int longer = static_cast<unsigned int>(tasksCompleted_min * time_milliseconds * 1.0 / tasksCompleted - time_milliseconds);
+        if (output) std::cout << "It takes " << longer << "ms longer than expected" << std::endl;
         
-        cicle++;
-    }
-    else
-        ++livello;      // Espansione del ricoprimento ('spostamento' ovviamente rimane uguale, ricopro con cubi n-dimensionali di uguali dimensioni in uno stesso ciclo di ricoprimento)
+        std::this_thread::sleep_for(std::chrono::milliseconds(longer));
 
-}
-
-bool covering::exit(bool ricerca_retta) {
-
-    // MOTIVI DI USCITA DAL CICLO FOR
-
-    //Per la ricerca lungo la retta
-    if (ricerca_retta)
-    {
-        //cout << endl << "esco per la retta" << endl;
-        return true;
+        tasksCompleted = tasksCompleted_min;
     }
 
-    //Solo se sono dopo il quarto livello (oppure dopo il secondo se non sono più al primo ciclo), allora posso terminare il 'cicle_programme' se il chi_quadro è migliorato più del per mille (in ogni caso questo non basta per terminare l'intero programma)
-    if (((cicle > 1) || (livello > 4)) && ((chi_quadro.size() > 1) && (livello > 2)))
+
+    tasksCompleted = pool->getTasksCompleted() + std::thread::hardware_concurrency();   // prima del 'delete' altrimenti non posso più accedere ovviamente alle funzioni di 'pool'
+
+    delete pool;        // Fa in tempo a fare al massimo n tasks dove n è il numero di threads, quindi considero nel tempo 'longer' che fa in tempo a fare n=std::thread::hardware_concurrency() tasks in più
+
+    analysis.resize(tasksCompleted);    // ridimensione il vettore contenente i 'future' da cui posso recuperare i risultati
+
+
+
+    if (output) std::cout << "Results levels analysed: " << std::endl;
+    unsigned int ind = 0;
+    for (auto& future : analysis)
     {
-        double check = (chi_quadro[chi_quadro.size() - 2] - chi_quadro[chi_quadro.size() - 1]) - chi_quadro[chi_quadro.size() - 1] * 0.001;
-        if (check < 0) {
-            //cout << endl << "esco chi quadro < 0.001" << endl;
-            return true;
+        auto res = future.get(); // Evita una copia temporanea qui
+
+        if (res.back() < chi_quadro_min)
+        {
+            chi_quadro_min = res.back();
+            par_best.assign(res.begin(), res.end() - 1); // Assegna direttamente evitando un ciclo.
+        }
+
+        if (output)
+        {
+            std::cout << ind + 1 << ".\t"; ind++;
+            for (size_t k = 0; k < par_best.size(); k++)
+            {
+                std::cout << res[k] << "\t";
+            }
+            std::cout << res.back() << std::endl;
         }
     }
 
-    //Se è stato migliorato solo una volta e sono già al 6° tentativo tanto vale uscire
-    if (chi_quadro.size() == 1 && k > 5) {
-        //cout << endl << "esco al sesto tentativo" << endl;
-        return true;
+    
+
+
+
+    /*
+    std::cout << "Risultati..." << std::endl;
+    for (auto& future : analysis)
+    {
+        auto res = future.get(); // Evita una copia temporanea qui.
+
+        std::cout << res.back() << std::endl;
+
+        if (res.back() < chi_quadro_min)
+        {
+            chi_quadro_min = res.back();
+            par_best.assign(res.begin(), res.end() - 1); // Assegna direttamente evitando un ciclo.
+        }
     }
+    */
 
-    //Se non è migliorato nemmeno una volta il chi quadro e sono al 7° tentativo tanto vale terminare tutto il programma
-    if (chi_quadro.size() == 0 && k > 6) {
-        return true;     //torna nella main principale uscendo anche dal while
-    }   // con la stessa condizione esco anche con 'end()' [*]
+    /*
+    for (size_t i = 0; i < tasksCompleted; i++)
+    {
+        std::vector<double> res = analysis[i].get();
 
-    return false;
+        if (res.back() < chi_quadro_min)
+        {
+            chi_quadro_min = res.back();
+            for (size_t k = 0; k < par_best.size(); k++)
+                par_best[k] = res[k];
+        }
+
+        if (output)
+        {
+            std::cout << i + 1 << ".\t";
+                for (size_t k = 0; k < par_best.size(); k++)
+                {
+                    std::cout << res[k] << "\t";
+                }
+            std::cout << res.back() << std::endl;
+        }
+    }
+    */
 }
 
 
+void covering::next() {
+    livello++;
+}
+
+
+void covering::SetFinish(bool value) {
+    finish.store(value, std::memory_order_relaxed); // Imposta il valore
+}
+
+bool covering::GetFinish() const {
+    return finish.load(std::memory_order_relaxed); // Legge il valore
+}
+
 bool covering::end() {
 
-    //riaggiorno parametri, libero 'chi_quadro' e 'livelli', e passo al ciclo di programma successivo
+    /*
+    /riaggiorno parametri, libero 'chi_quadro' e 'livelli', e passo al ciclo di programma successivo
     par = par_best;
     livelli.clear();            //livelli viene ripristinato
     livelli.assign(100, 0);     //
@@ -176,6 +256,7 @@ bool covering::end() {
     if (chi_quadro.size() == 0 && k > 6) {
         return true;
     }
+    */
 
     return false;
 

@@ -4,6 +4,7 @@
 #include "file.h"
 #include "plot.h"
 
+#include <iostream>
 #include <vector>
 #include <string>
 #include <map>
@@ -17,6 +18,7 @@ int main(int argc, char* argv[]) {
     int num_a = 0;                  //numero di parametri automatici
 
     std::map<std::string, bool> options = {
+        {"improve", false},     // imposta i parametri di partenza pari a quelli già calcolati in precedenza e riportati nel file di input
         {"faster", false},      // fa più veloce
         {"approx", false},      // approssima i risultati con le giuste cifre significative
         {"complex", false},     // mostra i "passaggi intermedi" nella minimizzazione del chi quadro
@@ -26,8 +28,12 @@ int main(int argc, char* argv[]) {
         {"plot", false}         // genera i grafici
     };
 
-    input(argc, argv, par_best, num_a, options, x, sigma_x, y, sigma_y);
-    int x_size = x.size();
+    input Input(argc, argv);
+    Input.compute(par_best, num_a, options, x, sigma_x, y, sigma_y);
+    if (options["improve"]) {
+        par_best = Input.GetParametersFromFile();
+        num_a = 0;  //non eseguo la ricerca automatica
+    }
     
     //------------RICERCA AUTOMATICA--------------------
     
@@ -38,7 +44,8 @@ int main(int argc, char* argv[]) {
     }
 
     //------------ESECUZIONE PROGRAMMA------------------
-    
+
+    int x_size = x.size();
     ChiSquareMinimizer Optimizer(options, x_size);
     Optimizer.begin  (par_best);
     Optimizer.compute(par_best);
@@ -46,7 +53,7 @@ int main(int argc, char* argv[]) {
 
     //------------SALVATAGGIO DEI RISULTATI-----------------
 
-    if (options["save!"] || (options["save"] && improved(std::string(argv[1]), par_best)))
+    if (options["save!"] || (options["save"] && Input.improved(std::string(argv[1]), par_best)))
     {
         //salvo i risultati nel file di testo
         writeFile(std::string(argv[1]), x, sigma_x, y, sigma_y, par_best, options["approx"], std::string(argv[par_best.size() + 2]));

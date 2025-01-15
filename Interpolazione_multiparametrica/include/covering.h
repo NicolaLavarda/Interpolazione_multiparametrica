@@ -2,8 +2,11 @@
 #define COVERING_H
 
 //#include "interpolator.h"
+#include "ThreadPool.h"
 
 #include <vector>
+#include <future>
+#include <atomic>
 
 
 class covering {
@@ -15,9 +18,13 @@ public:
 
     void ricoprimento(std::vector<double>& par_best, int dimensione, bool is_on_surface);
 
+    void GetResults(std::vector<double>& par_best, const unsigned int time_milliseconds, const unsigned int min_tasksCompleted);
+
     void next();
 
-    bool exit(bool ricerca_retta);
+    void SetFinish(bool value);
+
+    bool GetFinish() const;
 
     bool end();
 
@@ -43,8 +50,18 @@ private:
     int cicle;
     int k;
 
+    // opzioni richieste in linea di comando
     bool output;
     bool faster;
+
+    // Pool di multi-thread
+    ThreadPool* pool;
+    std::vector<std::future<std::vector<double>>> analysis;
+    //std::vector<std::vector<double>> results;
+    int num_result = 0;
+
+    std::atomic<bool>  finish = false;
+
 
     // Riferimento all'istanza Singleton
     //Interpolator& i_generator = Interpolator::getInstance();

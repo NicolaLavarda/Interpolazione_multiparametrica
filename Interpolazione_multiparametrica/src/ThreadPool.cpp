@@ -1,5 +1,7 @@
 #include "ThreadPool.h"
 
+#include <iostream>
+
 ThreadPool::ThreadPool() : stop(false) {
     // Creazione dei thread
     for (unsigned int i = 0; i < numThreads; ++i) {
@@ -25,15 +27,30 @@ ThreadPool::ThreadPool() : stop(false) {
 
                 // Eseguo il task
                 task();
+
+                // Incremento il contatore delle task completate
+                tasksCompleted++;
+                //std::cout << "->" << tasksCompleted << std::endl;
             }
             });
     }
 }
 
+
+// Funzione per ottenere il numero di task completati
+int ThreadPool::getTasksCompleted() const {
+    return tasksCompleted.load(); // Carica il valore in modo thread-safe
+}
+
+
 ThreadPool::~ThreadPool() {
     {
-        std::unique_lock<std::mutex> lock(queueMutex);
+        std::unique_lock<std::mutex> lock(queueMutex);      // accesso thread-safe
         stop = true;
+
+        while (!tasks.empty()) {
+            tasks.pop();
+        }
     }
     condition.notify_all(); // Sveglio tutti i thread per terminare
 
