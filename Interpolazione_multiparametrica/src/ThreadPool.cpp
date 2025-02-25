@@ -2,7 +2,8 @@
 
 #include <iostream>
 
-ThreadPool::ThreadPool() : stop(false) {
+ThreadPool::ThreadPool(unsigned int numberThreads) : stop(false) {
+    if (numberThreads > 0) numThreads = numberThreads;
     // Creazione dei thread
     for (unsigned int i = 0; i < numThreads; ++i) {
         workers.emplace_back([this] {
@@ -42,15 +43,23 @@ int ThreadPool::getTasksCompleted() const {
     return tasksCompleted.load(); // Carica il valore in modo thread-safe
 }
 
+void ThreadPool::SetEndAllTasks(bool endAll) {
+    endAllTasks = endAll;
+}
+
 
 ThreadPool::~ThreadPool() {
     {
         std::unique_lock<std::mutex> lock(queueMutex);      // accesso thread-safe
         stop = true;
 
-        while (!tasks.empty()) {
-            tasks.pop();
+        if (!endAllTasks)
+        {
+            while (!tasks.empty()) {
+                tasks.pop();
+            }
         }
+        
     }
     condition.notify_all(); // Sveglio tutti i thread per terminare
 

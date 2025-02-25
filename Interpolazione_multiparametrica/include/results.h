@@ -20,14 +20,18 @@ public:
 
 protected:
     std::vector<double> par;
+    std::vector<double> par_order;      // vettore che contiene i vari ordini di grandezza
+    int par_size;
     double chi_min;
     bool approx_bool;
     std::ostream& out; // Stream di output
     std::vector<char> name_par = { 'a','b','c','d','e' };   // nomi delle variabili
 
-private:
-    // Riferimento all'istanza Singleton
-    Interpolator& i_generator = Interpolator::getInstance();
+    // Riferimento all'istanza costante (solo per settare la nuova funzione per rinormalizzare i dati)
+    Interpolator& i_generator_base = Interpolator::getInstance();
+
+    // puntatore in aggiornamento ogni volta
+    Interpolator* i_generator = nullptr;
 };
 
 // Classe intermedia 1, eredita virtualmente da Base
@@ -46,7 +50,7 @@ public:
 // Classe derivata, eredita da entrambe le classi intermedie
 class Results : public Result1, public Result2 {
 public:
-    Results(std::vector<double> par_derived, bool approx_bool, int dim_x, std::ostream& output);
+    Results(std::vector<double>& par_derived, bool approx_bool, std::ostream& output);
     //chiama in ordine 'Results_base', 'Result1' e 'Result2' ed infine qui dentro al costruttore di 'Results'
     // 
     // Chiamare nel programma 'Results(par_best, approx);'

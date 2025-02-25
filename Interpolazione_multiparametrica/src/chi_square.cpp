@@ -9,6 +9,7 @@
 #include <vector>
 #include <cmath>        // per std::nan() e altre cose
 #include <limits>       // per std::numeric_limits
+#include <memory>
 
 using namespace std;
 
@@ -63,20 +64,21 @@ double p_value(double chi_observato, int GDL) {
 
 double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double chi_piu_uno_val, double range) {
 
-    // Riferimento all'istanza Singleton
-    Interpolator& i_generator = Interpolator::getInstance();
+    // Accesso ad una nuova istanza già settata
+    Interpolator* i_generator = Interpolator::getNewInstance();
 
     //Definsco variabili iniziali in base a quale parametro (numero_parametro) voglio analizzare
     double par = parametri[numero_parametro];
     if (numero_parametro >= parametri.size()) {
         cout << endl << "ERROR chi+1 - not number parameters valid";
         cout << endl << endl; //exit(EXIT_FAILURE);
+        delete i_generator;
         return std::numeric_limits<double>::quiet_NaN();
     }
 
     //precisione
     double precisione_par = fabs(par * 0.0000001);
-    double chi_min = i_generator.fChiQuadro(parametri);
+    double chi_min = i_generator->fChiQuadro(parametri);
 
     //Estremi per cui il sigma sarebbe altrimenti maggiore del range (di solito do valore 20%)
     range = (range == 0) ? 0.20 : range;
@@ -101,7 +103,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double 
     for (int t = 0; t < primi_chi_dx.size(); t++)
     {
         parametri[numero_parametro] = primi_chi_dx[t];
-        double sum_chi = i_generator.fChiQuadro(parametri);
+        double sum_chi = i_generator->fChiQuadro(parametri);
         dx_f_chi.push_back(parametri[numero_parametro]);
         dx_chi.push_back(sum_chi);
         //cout << parametri[numero_parametro] << "\t" << sum_chi << endl;
@@ -119,7 +121,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double 
     {
 
         parametri[numero_parametro] = dx_f_chi[posizione_min_chi_dx] + fabs(dx_f_chi[posizione_min_chi_dx] - dx_f_chi[posizione_sec_min_chi_dx]) / 2;
-        double sum_chi = i_generator.fChiQuadro(parametri);
+        double sum_chi = i_generator->fChiQuadro(parametri);
         dx_f_chi.push_back(parametri[numero_parametro]);
         dx_chi.push_back(sum_chi);
 
@@ -140,6 +142,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double 
         {
             cout << endl << "ERROR chi+1 dx (par" << numero_parametro << ")";
             cout << endl << endl; //exit(EXIT_FAILURE);
+            delete i_generator;
             return std::numeric_limits<double>::quiet_NaN();
             break;
         }
@@ -160,7 +163,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double 
     for (int t = 0; t < primi_chi_sx.size(); t++)
     {
         parametri[numero_parametro] = primi_chi_sx[t];
-        double sum_chi = i_generator.fChiQuadro(parametri);
+        double sum_chi = i_generator->fChiQuadro(parametri);
         sx_f_chi.push_back(parametri[numero_parametro]);
         sx_chi.push_back(sum_chi);
         //cout << parametri[numero_parametro] << endl;
@@ -174,7 +177,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double 
 
         parametri[numero_parametro] = sx_f_chi[posizione_sec_min_chi_sx] + fabs(sx_f_chi[posizione_min_chi_sx] - sx_f_chi[posizione_sec_min_chi_sx]) / 2;
         //cout << parametri[numero_parametro] << endl;
-        double sum_chi = i_generator.fChiQuadro(parametri);
+        double sum_chi = i_generator->fChiQuadro(parametri);
         sx_f_chi.push_back(parametri[numero_parametro]);
         sx_chi.push_back(sum_chi);
 
@@ -192,6 +195,7 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double 
         controllo_sx++;
         if (controllo_sx > 100)
         {
+            delete i_generator;
             cout << endl << "| ERROR chi+1 sx (par" << numero_parametro << ")";
             cout << endl << endl; //exit(EXIT_FAILURE);
             return std::numeric_limits<double>::quiet_NaN();
@@ -211,9 +215,9 @@ double chi_piu_uno_par_n(vector<double> parametri, int numero_parametro, double 
         sigma = chi_piu_uno_par_n(parametri, numero_parametro, chi_piu_uno_val, range);     //continuo ricorsivamente la ricerca finché l'errore non sta dentor al range
     }
 
+    delete i_generator;
+
     return sigma;
-
-
 }
 
 

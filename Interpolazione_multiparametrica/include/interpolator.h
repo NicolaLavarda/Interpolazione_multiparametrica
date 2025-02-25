@@ -3,55 +3,82 @@
 
 #include "exprtk.hpp"
 #include "util.h"
+
 #include <vector>
 #include <string>
-#include <mutex>
+#include <map>
+#include <memory>
 
-// Interpolator è un Singleton
+
 class Interpolator {
 public:
     // Disabilita copia e assegnazione
-    Interpolator(const Interpolator&) = delete;
-    Interpolator& operator=(const Interpolator&) = delete;
+    //Interpolator(const Interpolator&) = delete;
+    //Interpolator& operator=(const Interpolator&) = delete;
 
-    // Accesso all'unica istanza
+    // Accesso all'istanza permanente (termina alla fine del programma)
     static Interpolator& getInstance();
+
+    // Accesso ad una nuova istanza già settata
+    //static std::unique_ptr<Interpolator> getNewInstance();
+
+
+    static Interpolator* getNewInstance();
+
+
 
     // Metodi per impostare i dati
     void setExpression(const std::string& espressione_interpolante);
     void setData(std::vector<double>& x_val, std::vector<double>& sigma_x_val,
                  std::vector<double>& y_val, std::vector<double>& sigma_y_val);
 
+    // Metodo per normalizzare l'ordine di grandezza dei parametri
+    void normalizeTo10(std::vector<double>& par);
+
+    // Metodo static per ottenere gli ordini di grandezza corretti dei parametri
+    static std::vector<double> getParOrder();
 
     // Effettiva implementazione della funzione 'fChiQuadro'
-    double fChiQuadroImpl(std::vector<double> par);
-
-    // Funzione 'fChiQuadro' thread-safe
-    double fChiQuadro(const std::vector<double>& par) {
-        std::lock_guard<std::mutex> lock(mutex_); // Protezione del blocco
-        return fChiQuadroImpl(par);
-    }
+    double fChiQuadro(std::vector<double> par);
 
     // Funzionalità principali
     double yFunction(std::vector<double> par, double x_i);
     double xFunction(std::vector<double> par, int i);
 
+    // Ottieni il numero di dati
+    int getDimx();
+
+    //Interpolator();
+
 private:
-    // Costruttore privato per prevenire istanziamenti diretti
     Interpolator();
+
+    // Utilizzata da 'getNewInstance()' per settare le variabili accessibili solo da una precisa istanza (non static)
+    //std::unique_ptr<Interpolator> setNewInstance();
+
+    Interpolator* setNewInstance();
 
     // Funzione per 'fChiQuadro' quando è necessario considerare anche gli errori in x
     double dfdx(int i);
 
+    // Metodo per modificare l'ordine di grandezza di un parametro
+    void setOrder(int par_num, double order, std::string& f_interp);
+
     // Dati recuperati dal file '.txt'
     std::vector<double> x, sigma_x, y, sigma_y;
+
+    // funzione da interpretare (da non modificare)
+    std::string f_interpolante_const;
+
+    // funzione da interpretare (modificabile per cambiare l'ordine di grandezza delle variabili)
+    std::string f_interpolante;
 
     // Membro privato per l'espressione, simboli e parser
     typedef exprtk::symbol_table<double> symbol_table_t;
     typedef exprtk::expression<double> expression_t;
     typedef exprtk::parser<double> parser_t;
 
-    // Dichiarazione globale per l'espressione, simboli e parser
+    // Dichiarazione per l'espressione, simboli e parser
     symbol_table_t symbol_table;
     expression_t expression;
     parser_t parser;
@@ -64,8 +91,20 @@ private:
     double d = 4;
     double e = 5;
 
-    std::mutex mutex_; // Mutex per proteggere fChiQuadro
+    // Numero di dati
+    int x_size;
 
+    // Parametri a disposizione
+    std::vector<std::string> name_par = { "a","b","c", "d", "e" };
+    //static std::map<int, std::string> param_map;
+
+    // Mappa per tenere traccia degli ordini modificati dei parametri
+    static std::vector<double>  order_par;
+
+    // numero più vicino a cui normalizzare i parametri
+    static double base_order;
+
+    //friend std::unique_ptr<Interpolator> std::make_unique<Interpolator>();
 };
 
 #endif

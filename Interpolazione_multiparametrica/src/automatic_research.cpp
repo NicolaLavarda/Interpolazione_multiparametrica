@@ -11,25 +11,16 @@
 using namespace std;
 
 AutomaticResearch::AutomaticResearch(std::vector<double> par, bool output):
-    par(par), output(output)
+    par(par), output(output), par_size(par.size())
 {
     auto it = find(par.begin(), par.end(), 0);      // restituisce un puntatore al primo elemento uguale a 0 (parametro automatico)
     first = distance(par.begin(), it);          // restituisce l'indice di tale elemento
 }
 
 
-void AutomaticResearch::compute(std::vector<double>& par_auto, int n) {
-    static double chi_min_auto = 1e25;
-    static double min = -1e10;
-    static double max = 1e10;
-    static double min_ordine = 0.001;       //dev'essere positivo (>0)
-    static bool salita = true;         //Sto scorrendo in "salita" i parametri fino ad arrivare all'ultimo per poi cominciare a tornare indietro per migliorarli uno a uno "all'indietro"
-    static int par_size = par_auto.size();
+void AutomaticResearch::compute(std::vector<double>& par_auto, int n) {    
 
-    if (n >= par_size) {
-        salita = false;
-        return;
-    }
+    if (n >= par_size) return;
 
     double a = min;
     while (a <= max)
@@ -40,21 +31,20 @@ void AutomaticResearch::compute(std::vector<double>& par_auto, int n) {
             if (par[n] == 0) {
                 par_auto[n] = a;
             }
-            else {          //if (salita)
+            else {
                 while (n + k < par_size && par[n + k] != 0)
                     k++;
                 k--;
             }
         }
 
-        //if (salita)
         compute(par_auto, n + 1 + k);
 
-        //Se sono in 'salita', qui sono arrivato all'ultimo parametro e ora comincio a tornare indietro a migliorare quelli precedenti (se sono parametri automatici "a")
+        //Se sono in "salita", qui sono arrivato all'ultimo parametro e ora comincio a tornare indietro a migliorare quelli precedenti (se sono parametri automatici "a")
 
         if (par[n] != 0) return;    //Torno indietro se ne trovo uno che non è di quelli automatici "a" e procedo con quello successivo
 
-        double sum_chi = i_generator.fChiQuadro(par_auto);
+        double sum_chi = i_generator->fChiQuadro(par_auto);
 
         if (sum_chi <= chi_min_auto)
         {
@@ -82,48 +72,21 @@ void AutomaticResearch::beginJob() {
     compute(par_auto, 0);
     par = par_improved.back();
     
-    double chi_quadro_min = i_generator.fChiQuadro(par);
-    if (output)
-    {
-        cout << "Parametri da ricerca automatica:" << endl;
-        for (int k = 0; k < par.size(); k++)
-            cout << par[k] << "\t";
+    double chi_quadro_min = i_generator->fChiQuadro(par);
 
-        cout << endl << "Chi quadro = " << chi_quadro_min << endl;
-    }
+    if (output) print("Auto-search parameters:", par);
 
-    // Creo un pool di multi-thread
-    //ThreadPool pool;
-
-    // Aggiungo task al pool
-    int num_it = (par_improved.size() < 10) ? par_improved.size() : 10;
-    for (int i = 0; i < num_it; i++)
-    {
-        //analysis.emplace_back(pool.enqueue(discesa_gradiente, i, 10));
-    }
-
-    // Recupero i risultati
-    //for (int i = 0; i < num_it; i++) {
-        //std::cout << "Risultato: " << analysis[i].get() << std::endl;
-    //}
-
-    double sensibility = 0.1;
     //Cerco di capire qual è il miglior 'par' con "discesa_gradiente"
-    for (size_t i = 0; i < 5; i++)
+    int n = (par_improved.size() < 5) ? par_improved.size() : 5;
+    double sensibility = 0.1;
+    for (size_t i = 0; i < n; i++)
     {
         par = par_improved[par_improved.size() - 1 - i];
         gradient_descent_algorithm(par, chi_quadro_min, sensibility);
     }
 
+    if (output) print("Improved auto-search parameters:", par);
 
-    if (output)
-    {
-        cout << "Parametri automatici iniziali migliorati:" << endl;
-        for (int k = 0; k < par.size(); k++)
-            cout << par[k] << "\t";
-
-        cout << endl << "Chi quadro = " << chi_quadro_min << endl;
-    }
 }
 
 
@@ -132,18 +95,26 @@ void AutomaticResearch::endJob(std::vector<double>& par_best) {
 }
 
 
+void AutomaticResearch::print(const std::string name, std::vector<double> par) {
+    cout << name << endl;
+    for (int k = 0; k < par.size(); k++)
+        cout << par[k] << "\t";
 
-/*
-//Cerco di capire se è meglio 'par' o 'par_i2' con "discesa_gradiente" ('par_i2' è il secondo migliore)
-    std::vector<double> par_i1 = par;                                   // le due alternative
-    std::vector<double> par_i2 = par_improved[par_improved.size()-2];   //
+    cout << endl << "Chi-squared = " << i_generator->fChiQuadro(par) << endl;
+}
 
-    double sensibility0 = 1;    // variazione iniziale del 100%
-    gradient_descent_algorithm(par_i1, chi_quadro_min, sensibility0);    //Miglioro 'par_i1' con metodo "discesa_gradiente"
 
-    double sensibility1 = 1;    // variazione iniziale del 100%
-    gradient_descent_algorithm(par_i2, chi_quadro_min, sensibility1);    //Miglioro 'par_i2' con metodo "discesa_gradiente"
 
-    par = (i_generator.fChiQuadro(par_i1) < i_generator.fChiQuadro(par_i2)) ? par_i1 : par_i2;      //Controllo se è meglio 'par_i1' o 'par_i2'
-    chi_quadro_min = i_generator.fChiQuadro(par);
-*/
+
+void AutomaticResearch::doBetter() {
+
+    // Mi assicuro di partire da un minimo locale
+    double sensibility = 0.1;
+    double chi_quadro_min = 0.0;
+    gradient_descent_algorithm(par, chi_quadro_min, sensibility);
+}
+
+
+AutomaticResearch::~AutomaticResearch() {
+    delete i_generator;
+}

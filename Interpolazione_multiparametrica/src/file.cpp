@@ -153,8 +153,7 @@ void writeFile(const std::string filePath,
 
     file << "Interpolating function: \t" << function;
 
-    int dim_x = x.size();
-    Results(par_best, approx, dim_x, file);
+    Results(par_best, approx, file);
 
 
     file.close();

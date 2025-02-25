@@ -4,6 +4,7 @@
 #include "interpolator.h"
 
 #include <vector>
+#include <memory>
 
 // Chiamare nel programma 'linear_mode(par_lin, m_lin, q_lin, errore_lin, ricerca_retta, faster, complex);'
 // in modo da creare un oggetto temporaneo che restituisca semplicemente a schermo i risultati
@@ -17,6 +18,8 @@ public:
 
     //funzione effettiva da usare nella main
     void research(std::vector<double> par_in, bool& errore_lin, bool& ricerca_retta);
+
+    ~linear_mode();
 
 private:
 
@@ -39,8 +42,8 @@ private:
     bool faster;
     bool complex;
 
-    // Riferimento all'istanza Singleton
-    Interpolator& i_generator = Interpolator::getInstance();
+    // Accesso ad una nuova istanza già settata
+    Interpolator* i_generator = Interpolator::getNewInstance();
 
 };
 
