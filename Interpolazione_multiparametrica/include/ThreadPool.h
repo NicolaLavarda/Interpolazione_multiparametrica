@@ -12,7 +12,7 @@
 
 class ThreadPool {
 public:
-    ThreadPool();
+    ThreadPool(unsigned int numberThreads);
 
     // Funzione per aggiungere le tasks
     template <class F, class... Args>       // Per le classi template devono essere dichiarate ed implementate nello stesso file
@@ -41,6 +41,8 @@ public:
 
     int getTasksCompleted() const;
 
+    void SetEndAllTasks(bool endAll);
+
     ~ThreadPool();
 
 private:
@@ -53,6 +55,7 @@ private:
     std::atomic<bool> stop;                          // Flag per terminare il pool
 
     std::atomic<int> tasksCompleted = 0;                 // Contatore delle task completate
+    bool endAllTasks = true;
 };
 
 #endif

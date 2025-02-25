@@ -12,16 +12,17 @@
 #include <stdexcept>
 #include <functional>
 #include <algorithm>
+#include <memory>
 
 using namespace std;
 
 // Variabile globale visibile solo in questo file
-// Riferimento all'istanza Singleton
-Interpolator& i_generator = Interpolator::getInstance();
+// Accesso ad una nuova istanza già settata
+Interpolator* i_generator = nullptr;
 
 //Funzione obbiettivo chi_quadro da usare nel calcolo delle derivate seconde per l'hessiana
 double f(vector<double> parametri) {
-    return i_generator.fChiQuadro(parametri);
+    return i_generator->fChiQuadro(parametri);
 }
 
 
@@ -55,6 +56,10 @@ double second_derivative(vector<double> params, int i) {
 
 // Funzione per calcolare l'intera matrice hessiana
 vector<vector<double>> hessian(vector<double>& params) {
+
+    // setta una nuova istanza qualora fosse cambiato qualcosa
+    i_generator = Interpolator::getNewInstance();
+
     int n = params.size();
     vector<vector<double>> H(n, vector<double>(n, 0.0));
 

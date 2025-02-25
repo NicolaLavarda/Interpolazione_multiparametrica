@@ -9,7 +9,7 @@
 
 class ChiSquareMinimizer {
 public:
-	ChiSquareMinimizer(std::map<std::string, bool>& options, int num_val);
+	ChiSquareMinimizer(std::map<std::string, bool>& options);
 
 	void begin(std::vector<double>& par_best);
 
@@ -17,13 +17,9 @@ public:
 
 	void end(std::vector<double>& par_best);
 
-
-
-	void thread1(std::vector<double>& par_best);
-	void thread2(std::vector<double>& par_best);
-
-
 private:
+
+	void computeCovering(std::vector<double>& par_best, int cicle_programms);
 
 	bool faster, approx, complex, retta;	  // opzioni da riga di comando
 
@@ -32,10 +28,6 @@ private:
 
 	bool errore_lin = false;		// serve per 'compute'
 	int cicle_programms = 0;        // Numero di cicli di riesecuzione del programma
-
-	int x_size;
-
-	//bool finish = false;
 
 	covering* c_generator = nullptr;
 

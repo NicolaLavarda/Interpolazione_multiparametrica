@@ -63,7 +63,6 @@ void input::compute(std::vector<double>& par, int& num_a, std::map<std::string, 
     int par_size = par.size();
 
 
-
     if (argc == par_size + 2) {
         cerr << "No interpolating function has been entered" << endl;
         exit(EXIT_FAILURE);

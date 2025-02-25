@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
         {"save!", false},       // salva i risultati nel file contenente i dati in ogni caso
         {"plot", false}         // genera i grafici
     };
-
+    
     input Input(argc, argv);
     Input.compute(par_best, num_a, options, x, sigma_x, y, sigma_y);
     if (options["improve"]) {
@@ -40,13 +40,13 @@ int main(int argc, char* argv[]) {
     if (num_a != 0) {
         AutomaticResearch Auto(par_best, options["complex"]);
         Auto.beginJob();
+        Auto.doBetter();        // in moglioramento
         Auto.endJob(par_best);
     }
-
+    
     //------------ESECUZIONE PROGRAMMA------------------
 
-    int x_size = x.size();
-    ChiSquareMinimizer Optimizer(options, x_size);
+    ChiSquareMinimizer Optimizer(options);
     Optimizer.begin  (par_best);
     Optimizer.compute(par_best);
     Optimizer.end    (par_best);

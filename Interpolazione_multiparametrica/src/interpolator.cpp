@@ -7,24 +7,89 @@
 #include <vector>
 #include <cmath>
 #include <string>
+#include <regex>
 #include <functional>
 #include <algorithm>
 #include <stdexcept>
 
+#include <iomanip>
+#include <memory>  // Per std::unique_ptr
+
+
+static bool flag_in_exp = false;
+static bool flag_in_data = false;
 
 // Costruttore privato
 Interpolator::Interpolator() {
-    
+
+    base_order = 10;     // numero più vicino a cui normalizzare i parametri
+
+    // Inizializzo gli ordini di correzione dei parametri a 1 solo la prima volta che creo la prima istanza
+    if (order_par.empty())
+        order_par.resize(name_par.size(), 1.0);
+
 }
 
-// Accesso all'istanza Singleton
+
+
+
+/*
+// Accesso ad una nuova istanza già settata
+std::unique_ptr<Interpolator> Interpolator::getNewInstance() {
+    Interpolator& i_generator = Interpolator::getInstance();
+    return i_generator.getNewInstance();
+}
+
+// Utilizzata da 'getNewInstance()' per settare le variabili accessibili solo da una precisa istanza (non static)
+std::unique_ptr<Interpolator> Interpolator::setNewInstance() {
+    auto instance = std::make_unique<Interpolator>();
+
+    instance->setExpression(f_interpolante);        // imposta le variabili uguali a qualsiasi istanza Interpolator
+    instance->setData(x, sigma_x, y, sigma_y);      //
+
+    return instance; // RVO (Return Value Optimization) rende efficiente il ritorno di unique_ptr
+}
+*/
+
+/*
+Interpolator* Interpolator::getNewInstance() {
+    Interpolator* instance = new Interpolator();
+
+    instance->setExpression(f_interpolante);      // imposta le variabili uguali a qualsiasi istanza Interpolator
+    instance->setData(x, sigma_x, y, sigma_y);    //
+
+    return instance;
+}
+*/
+
+
+Interpolator* Interpolator::getNewInstance() {
+    if (!(flag_in_exp && flag_in_data))
+        return nullptr;
+    Interpolator& i_generator = Interpolator::getInstance();
+    return i_generator.setNewInstance();
+}
+
+Interpolator* Interpolator::setNewInstance() {
+    Interpolator* instance = new Interpolator();
+
+    instance->setExpression(f_interpolante);      // imposta le variabili uguali a qualsiasi istanza Interpolator
+    instance->setData(x, sigma_x, y, sigma_y);    //
+
+    return instance;
+}
+
+// Accesso all'istanza permanente (termina alla fine del programma)
 Interpolator& Interpolator::getInstance() {
     static Interpolator instance;
     return instance;
 }
 
-
 void Interpolator::setExpression(const std::string& espressione_interpolante) {
+    f_interpolante = espressione_interpolante;
+
+    static std::string exp_val = espressione_interpolante;      // La prima volta in assoluto che viene chiamata questa funzione viene definito 'f_interpolante_const' pari a quella effettiva data in input
+    f_interpolante_const = exp_val;                 // rimane poi la stessa per qualsiasi istanza a questa classe
 
     // Registra i riferimenti ai puntatori
     symbol_table.add_variable("x", x_i);
@@ -40,6 +105,8 @@ void Interpolator::setExpression(const std::string& espressione_interpolante) {
     if (!parser.compile(espressione_interpolante, expression)) {
         throw std::runtime_error("Error in 'setExpression': Interpolating expression registration failed.");
     }
+
+    flag_in_exp = true;
 }
 
 
@@ -50,10 +117,72 @@ void Interpolator::setData(std::vector<double>& x_val, std::vector<double>& sigm
     sigma_x = sigma_x_val;
     y = y_val;
     sigma_y = sigma_y_val;
+
+    x_size = x.size();
+
+    flag_in_data = true;
 }
 
 
-double Interpolator::fChiQuadroImpl(std::vector<double> par) {
+void Interpolator::setOrder(int par_num, double order, std::string& f_interp) {      // ad esempio setOrder(0, 0.001) pone al posto del parametro "a" (numero 0) la stringa "a*0.001"
+    
+    if (par_num > name_par.size()) throw std::invalid_argument("Cannot setOrder of a parameter out of range of defaults");
+    
+    std::string parametro = name_par[par_num];
+
+    // Costruisco l'espressione regolare per cercare il parametro come parola intera
+    std::regex pattern("\\b" + parametro + "\\b");
+    // La sostituzione sarà parametro*order, ad es. "b*1000"
+    std::string sostituzione = "(" + parametro + "*" + std::to_string(order) + ")";
+    f_interp = std::regex_replace(f_interp, pattern, sostituzione);
+
+    //std::cout << "-> funzione: " << f_interp << std::endl;
+    //std::cout << "-> par: " << par_num << "\t ordine: " << std::fixed << std::setprecision(8) << order << std::endl;
+
+}
+
+
+void Interpolator::normalizeTo10(std::vector<double>& par) {
+
+    /*
+    std::cout << std::endl << "Prima:" << std::endl;
+    for (int i = 0; i < par.size(); i++)
+    {
+        std::cout << "par" << i << " " << std::fixed << std::setprecision(8) << par[i] << "\t";
+        std::cout << "order" << i << " " << std::fixed << std::setprecision(8) << order_par[i] << std::endl;
+    }
+    std::cout << std::endl << "Dopo:" << std::endl;
+    */
+
+    std::string f_interp = f_interpolante_const;    //prende ogni volta la funzione definita all'inizio dall'utente
+    
+    int n = par.size();
+    for (int i = 0; i < n; ++i) {
+
+        double potenza = std::pow(10.0, -std::round(std::log10(base_order / std::fabs(par[i]))));
+        //std::cout << "potenza" << i << " " << std::fixed << std::setprecision(8) << potenza << "\t";
+        par[i] /= potenza;
+        order_par[i] *= potenza;     // aggiorno il vettore static (visibile uguale tra tutte le istanze) che tiene nota delle potenze assegnate ai parametri
+        setOrder(i, order_par[i], f_interp);
+    }
+
+    /*
+    for (int i = 0; i < par.size(); i++)
+    {
+        std::cout << "par" << i << " " << std::fixed << std::setprecision(8) << par[i] << "\t";
+        std::cout << "order" << i << " " << std::fixed << std::setprecision(8) << order_par[i] << std::endl;
+    }
+    */
+
+    setExpression(f_interp);
+}
+
+std::vector<double> Interpolator::getParOrder() {
+    return order_par;
+}
+
+
+double Interpolator::fChiQuadro(std::vector<double> par) {
 
     //I parametri basta riassegnarli una volta alla chiamata della funzione, la x invece ovviamente va riassegnata ad ogni iterazione del ciclo for per il calcolo del chi quadro
     symbol_table.get_variable("a")->ref() = double(par[0]);
@@ -66,7 +195,7 @@ double Interpolator::fChiQuadroImpl(std::vector<double> par) {
     static bool err_x = sigma_x.empty();
     if (err_x)
     {
-        for (int i = 0; i < x.size(); i++)
+        for (int i = 0; i < x_size; i++)
         {
             symbol_table.get_variable("x")->ref() = double(x[i]);
             sum_chi += std::pow((y[i] - expression.value()) / sigma_y[i], 2);
@@ -74,7 +203,7 @@ double Interpolator::fChiQuadroImpl(std::vector<double> par) {
     }
     else
     {
-        for (int i = 0; i < x.size(); i++)
+        for (int i = 0; i < x_size; i++)
         {
             symbol_table.get_variable("x")->ref() = double(x[i]);
             sum_chi += std::pow((y[i] - expression.value()), 2) / (std::pow(sigma_y[i],2) + std::pow(dfdx(i) * sigma_x[i], 2));
@@ -168,6 +297,15 @@ double Interpolator::dfdx(int i) {        // O(h^4)
 
     symbol_table.get_variable("x")->ref() = double(x[i]);       //riporta "x" al valore precedente
     double der = (-val_ip2 + 8 * val_ip1 - 8 * val_im1 + val_im2) / (12 * h);
-    //std::cout << "-----> " << der << std::endl;
+
     return der;
 }
+
+
+int Interpolator::getDimx() {
+    return x_size;
+}
+
+// Definizione delle variabili statiche
+std::vector<double> Interpolator::order_par;
+double Interpolator::base_order;

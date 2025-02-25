@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 
 #include <TMultiGraph.h>
 #include <TGraphErrors.h>
@@ -25,6 +26,8 @@ public:
     void compute_plot_Residuals();
 
     void save(std::string format_file);
+
+    ~PlotGenerator();
 
 private:
 
@@ -77,8 +80,8 @@ private:
     //Nome base di tutti i grafici
     std::string base_name;
 
-    // Riferimento all'istanza Singleton
-    Interpolator& i_generator = Interpolator::getInstance();
+    // Accesso ad una nuova istanza già settata
+    Interpolator* i_generator = Interpolator::getNewInstance();
 
 };
 

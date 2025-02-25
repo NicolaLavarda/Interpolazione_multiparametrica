@@ -134,9 +134,9 @@ void linear_mode::research(vector<double> par_in, bool& errore_lin, bool& ricerc
             return;
         }
 
-        double chi_lin_fin = i_generator.fChiQuadro(par_bisez_lin);
+        double chi_lin_fin = i_generator->fChiQuadro(par_bisez_lin);
 
-        if (chi_lin_fin < i_generator.fChiQuadro(par_best))
+        if (chi_lin_fin < i_generator->fChiQuadro(par_best))
         {
             par_best = par_bisez_lin;
             chi_quadro_min = chi_lin_fin;
@@ -213,7 +213,7 @@ void linear_mode::bisezione_lin(vector<double>& par, vector<double> m, vector<do
 
         int controllo_par_n = 0;
         vector<double> chi_par_n, par_chi_n;
-        double min_chi_par_n = i_generator.fChiQuadro(par) * 2;    //Oh là, ecco così viene perfetto. So per certo che migliore almeno fino a 'i_generator.fChiQuadro(par)' perché è incluso nell'intervallo di ricerca. Gli permetto valori fino al doppio per trovare quello giusto                                       //Non capisco perché non funziona correttamente se metto 'double min_chi_par_n = 1e20;'
+        double min_chi_par_n = i_generator->fChiQuadro(par) * 2;    //Oh là, ecco così viene perfetto. So per certo che migliore almeno fino a 'i_generator->fChiQuadro(par)' perché è incluso nell'intervallo di ricerca. Gli permetto valori fino al doppio per trovare quello giusto                                       //Non capisco perché non funziona correttamente se metto 'double min_chi_par_n = 1e20;'
         double sec_min_chi_par_n = 1000000;              //Questo non servirebbe nemmeno inizializzarlo
         double posizione_min_chi_par_n = 0;
         double posizione_sec_min_chi_par_n = 1;
@@ -227,7 +227,7 @@ void linear_mode::bisezione_lin(vector<double>& par, vector<double> m, vector<do
                 if (i != n_worst)
                     par[i] = m[i] * par[n_worst] + q[i];
             }
-            double sum_chi = i_generator.fChiQuadro(par);
+            double sum_chi = i_generator->fChiQuadro(par);
             chi_par_n.push_back(sum_chi);
             par_chi_n.push_back(p);
         }
@@ -254,7 +254,7 @@ void linear_mode::bisezione_lin(vector<double>& par, vector<double> m, vector<do
                 if (i != n_worst)
                     par[i] = m[i] * par[n_worst] + q[i];
             }
-            double sum_chi = i_generator.fChiQuadro(par);
+            double sum_chi = i_generator->fChiQuadro(par);
             par_chi_n.push_back(par[n_worst]);
             chi_par_n.push_back(sum_chi);
 
@@ -294,7 +294,7 @@ void linear_mode::bisezione_lin(vector<double>& par, vector<double> m, vector<do
     for (int k = 0; k < par.size(); k++)
         cout << par[k] << "\t";
     cout << " -> ";
-    cout << i_generator.fChiQuadro(par) << endl;
+    cout << i_generator->fChiQuadro(par) << endl;
     */
 
 
@@ -333,7 +333,7 @@ void linear_mode::bisezione_lin(vector<double>& par, vector<double> m, vector<do
         for (int k = 0; k < par.size(); k++)
             cout << par_lin_passi[k] << "\t";
         cout << " -> ";
-        cout << i_generator.fChiQuadro(par_lin_passi) << endl;
+        cout << i_generator->fChiQuadro(par_lin_passi) << endl;
         */
 
         //Algoritmo di bisezione
@@ -344,7 +344,7 @@ void linear_mode::bisezione_lin(vector<double>& par, vector<double> m, vector<do
         for (int k = 0; k < par.size(); k++)
             cout << par_lin_passi[k] << "\t";
         cout << " -> ";
-        cout << i_generator.fChiQuadro(par_lin_passi) << endl;
+        cout << i_generator->fChiQuadro(par_lin_passi) << endl;
         cout << "-------" << endl;
         */
 
@@ -357,7 +357,7 @@ void linear_mode::bisezione_lin(vector<double>& par, vector<double> m, vector<do
     for (int k = 0; k < par.size(); k++)
         cout << par[k] << "\t";
     cout << " -> ";
-    cout << i_generator.fChiQuadro(par) << endl;
+    cout << i_generator->fChiQuadro(par) << endl;
     */
 
 }
@@ -372,7 +372,7 @@ int linear_mode::worst_parameter(vector<double>& m_lin, vector<double>& q_lin) {
     
     //capisco qual è il parametro peggiore ovvero quello con il coefficiente angolare percentuale peggiore
     double prec_criticality = 0;
-    double chi_quadro_original = i_generator.fChiQuadro(par_best);    // Valore del chi quadro attuale
+    double chi_quadro_original = i_generator->fChiQuadro(par_best);    // Valore del chi quadro attuale
     for (int i = 0; i < m_lin.size(); i++)
     {
         auto min_iter = min_element(par_best.begin(), par_best.end());
@@ -384,7 +384,7 @@ int linear_mode::worst_parameter(vector<double>& m_lin, vector<double>& q_lin) {
         perturbed_params[i] += epsilon * m_lin[i];      //lascio che abbia il segno di 'm_lin[i]'
 
         // Calcola la variazione del chi quadro
-        double chi_quadro_perturbed = i_generator.fChiQuadro(perturbed_params);
+        double chi_quadro_perturbed = i_generator->fChiQuadro(perturbed_params);
 
         //cout << endl << "par" << i << ": \t" << chi_quadro_original << endl;
         //cout << endl << "par" << i << ": \t" << chi_quadro_perturbed << endl;
@@ -416,4 +416,6 @@ int linear_mode::worst_parameter(vector<double>& m_lin, vector<double>& q_lin) {
 }
 
 
-
+linear_mode::~linear_mode() {
+    delete i_generator;
+}

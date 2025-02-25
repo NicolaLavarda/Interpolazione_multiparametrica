@@ -143,8 +143,8 @@ void PlotGenerator::plot_function(TMultiGraph*& grafico_dati_interpolazione, vec
 
     for (int i = 0; i < vecx_funz_interpolante.size(); i++)
     {
-        //cout << vecx_funz_interpolante[i] << "\t" << i_generator.yFunction(par, vecx_funz_interpolante[i]) << endl;
-        funzione_interpolante_dati->SetPoint(i, vecx_funz_interpolante[i], i_generator.yFunction(par, vecx_funz_interpolante[i]));        // 'yFunction(std::vector<double> par, double x)' funzione definita in #include "interpolator.h"
+        //cout << vecx_funz_interpolante[i] << "\t" << i_generator->yFunction(par, vecx_funz_interpolante[i]) << endl;
+        funzione_interpolante_dati->SetPoint(i, vecx_funz_interpolante[i], i_generator->yFunction(par, vecx_funz_interpolante[i]));        // 'yFunction(std::vector<double> par, double x)' funzione definita in #include "interpolator.h"
     }
 
     funzione_interpolante_dati->SetLineColor(kRed);
@@ -266,8 +266,8 @@ void PlotGenerator::plot_residui(vector<TGraphErrors*>& grafici_residui, vector<
             double err_x = 0;
             double err_y = 0;
 
-            double residuo_x = (sigma_x.size() != 0) ? x[i] - i_generator.xFunction(par, i) : 0;       //usa un metodo di bisezione per approssimare x(y)
-            double residuo_y = y[i] - i_generator.yFunction(par, x[i]);
+            double residuo_x = (sigma_x.size() != 0) ? x[i] - i_generator->xFunction(par, i) : 0;       //usa un metodo di bisezione per approssimare x(y)
+            double residuo_y = y[i] - i_generator->yFunction(par, x[i]);
 
             if (g == 0)              //residui in x
             {
@@ -471,8 +471,8 @@ vector<vector<double>> PlotGenerator::calcolo_matrice_chi_quadri(vector<double> 
             vector<double> par_chi = par;
             par_chi[primo_par] = i;
             par_chi[secondo_par] = j;
-            p1p2chi2[2].push_back(i_generator.fChiQuadro(par_chi));
-            //cout << i << "\t" << j << "\t" << i_generator.fChiQuadro(par_chi) << endl;
+            p1p2chi2[2].push_back(i_generator->fChiQuadro(par_chi));
+            //cout << i << "\t" << j << "\t" << i_generator->fChiQuadro(par_chi) << endl;
         }
     }
 
@@ -490,3 +490,8 @@ bool PlotGenerator::isValidFormat(const std::string& extension) {
     return validExtensions.find(extension) != validExtensions.end();
 }
 
+
+
+PlotGenerator::~PlotGenerator() {
+    delete i_generator;
+}

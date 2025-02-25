@@ -21,7 +21,7 @@ bisection_algorithm::bisection_algorithm(vector<double>& par_best, const vector<
 
     //Preservo i parametri per controlalre alla fine se il chi quadro è stato effettivamente migliorato (ovvio, ma per doppio check)
     vector<double> par_prec = par_best;
-    double chi_prec = i_generator.fChiQuadro(par_prec);
+    double chi_prec = i_generator->fChiQuadro(par_prec);
     
     try
     {
@@ -38,7 +38,7 @@ bisection_algorithm::bisection_algorithm(vector<double>& par_best, const vector<
     }
 
     //Verifico siano effettivamente migliori i parametri (chi_quadro minore)
-    double chi_bisezione = i_generator.fChiQuadro(par_best);
+    double chi_bisezione = i_generator->fChiQuadro(par_best);
 
     if (chi_bisezione < chi_prec)
     {
@@ -107,7 +107,7 @@ void bisection_algorithm::bisection(vector<double> par, vector<double>& par_def,
     for (double p = range_min_par_n; p < range_max_par_n + fabs(range_max_par_n * 0.1); p += (range_max_par_n - range_min_par_n))   //primi due elementi agli estremi --> uso 'p < range_max_par_n + fabs(range_max_par_n * 0.1)' anzichè 'p <= range_max_par_n' per evitare di controllare valori tra double molto vicini
     {
         par[n] = p;
-        double sum_chi = i_generator.fChiQuadro(par);
+        double sum_chi = i_generator->fChiQuadro(par);
         chi_par_n.push_back(sum_chi);
         par_chi_n.push_back(p);
     }
@@ -138,7 +138,7 @@ void bisection_algorithm::bisection(vector<double> par, vector<double>& par_def,
         bisection(par, par_def, passo, n + 1);
 
         // ritorno a parametro precedente
-        double sum_chi = i_generator.fChiQuadro(par);
+        double sum_chi = i_generator->fChiQuadro(par);
         par_chi_n.push_back(par[n]);
         chi_par_n.push_back(sum_chi);
 
@@ -171,3 +171,8 @@ void bisection_algorithm::bisection(vector<double> par, vector<double>& par_def,
 
 }
 
+
+
+bisection_algorithm::~bisection_algorithm() {
+    delete i_generator;
+}

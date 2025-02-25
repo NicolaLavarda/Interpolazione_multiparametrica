@@ -6,7 +6,7 @@
 
 #include <vector>
 #include <future>
-#include <atomic>
+//#include <atomic>
 
 
 class covering {
@@ -16,23 +16,17 @@ public:
 
     void status(int cicle_val, int k);
 
-    void ricoprimento(std::vector<double>& par_best, int dimensione, bool is_on_surface);
+    void ricoprimento(int dimensione, bool is_on_surface);
 
-    void GetResults(std::vector<double>& par_best, const unsigned int time_milliseconds, const unsigned int min_tasksCompleted);
+    void GetResults(std::vector<double>& par_best, const unsigned int time_milliseconds, const unsigned int min_tasksCompleted, const unsigned int time_max);
 
     void next();
-
-    void SetFinish(bool value);
-
-    bool GetFinish() const;
-
-    bool end();
 
 
 private:
 
-    std::vector<double> par_prov;
-    std::vector<double> par;
+    std::vector<double> par_prov;   //restano fissi per indicare il centro da cui parte il ricoprimento
+    std::vector<double> par;        //coordinate che cambiano del centro dell'attuale cubo n-dim in analisi
 
     std::vector<double> par_best;
     double chi_quadro_min;
@@ -55,16 +49,12 @@ private:
     bool faster;
 
     // Pool di multi-thread
-    ThreadPool* pool;
+    ThreadPool* pool = nullptr;
     std::vector<std::future<std::vector<double>>> analysis;
-    //std::vector<std::vector<double>> results;
-    int num_result = 0;
+    unsigned int numThreads = 20;  //std::thread::hardware_concurrency();
 
-    std::atomic<bool>  finish = false;
-
-
-    // Riferimento all'istanza Singleton
-    //Interpolator& i_generator = Interpolator::getInstance();
+    int counter = 0;
+    unsigned int max_tasksCompleted = 1000; // valore modificato in 'ChiSquareMinimizer' attraverso 'GetResults'
 
 };
 
