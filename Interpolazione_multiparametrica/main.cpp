@@ -40,10 +40,9 @@ int main(int argc, char* argv[]) {
     if (num_a != 0) {
         AutomaticResearch Auto(par_best, options["complex"]);
         Auto.beginJob();
-        Auto.doBetter();        // in moglioramento
         Auto.endJob(par_best);
     }
-    
+
     //------------ESECUZIONE PROGRAMMA------------------
 
     ChiSquareMinimizer Optimizer(options);

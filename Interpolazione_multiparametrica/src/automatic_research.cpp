@@ -2,13 +2,14 @@
 
 #include "interpolator.h"
 #include "gradient_descent_algorithm.h"
+#include "BranchingCover.h"
 //#include "ThreadPool.h"
 
 #include <iostream>
 #include <vector>
 #include <algorithm>
-
-using namespace std;
+#include <cmath>
+#include <string>
 
 AutomaticResearch::AutomaticResearch(std::vector<double> par, bool output):
     par(par), output(output), par_size(par.size())
@@ -76,43 +77,58 @@ void AutomaticResearch::beginJob() {
 
     if (output) print("Auto-search parameters:", par);
 
-    //Cerco di capire qual è il miglior 'par' con "discesa_gradiente"
+    //Cerco di capire qual è il miglior 'par' con 'BranchingCover::doBetter'
     int n = (par_improved.size() < 5) ? par_improved.size() : 5;
-    double sensibility = 0.1;
-    for (size_t i = 0; i < n; i++)
+    for (int i = 0; i < n; i++)
     {
-        par = par_improved[par_improved.size() - 1 - i];
-        gradient_descent_algorithm(par, chi_quadro_min, sensibility);
+        std::vector<double> par_prov = par_improved[par_improved.size() - 1 - i];
+        double chi_min = (i == 0) ? chi_quadro_min : i_generator->fChiQuadro(par_prov);
+        if (chi_min > chi_quadro_min * 100)     // se il rispettivo chi_quadro è più di 100 volte più grande di quello minimo delle altre scelte non li considero più da lì in poi
+            return;
+
+        // Metodo di ramificazione per migliorare i parametri
+        BranchingCover b_generator(par_prov);
+        b_generator.compute(par_prov);
+
+        chi_min = i_generator->fChiQuadro(par_prov);
+        if (chi_min < chi_quadro_min) {
+            par = par_prov;
+            chi_quadro_min = chi_min;
+            if (output) print("Auto-search parameters iteration " + std::to_string(i), par);
+        }
+        else
+            break;
+
     }
 
-    if (output) print("Improved auto-search parameters:", par);
+    std::vector<double> par_prov = par;
+    BranchingCover b_generator2(par_prov);
+    b_generator2.compute(par_prov);
+    double chi_min = i_generator->fChiQuadro(par_prov);
+    if (chi_min < chi_quadro_min) {
+        par = par_prov;
+        chi_quadro_min = chi_min;
+        if (output) print("Auto-search parameters", par);
+    }
+    
 
 }
 
 
 void AutomaticResearch::endJob(std::vector<double>& par_best) {
     par_best = par;
+    if (output) print("Improved auto-search parameters:", par_best);
 }
 
 
 void AutomaticResearch::print(const std::string name, std::vector<double> par) {
-    cout << name << endl;
+    std::cout << name << std::endl;
     for (int k = 0; k < par.size(); k++)
-        cout << par[k] << "\t";
+        std::cout << par[k] << "\t";
 
-    cout << endl << "Chi-squared = " << i_generator->fChiQuadro(par) << endl;
+    std::cout << std::endl << "Chi-squared = " << i_generator->fChiQuadro(par) << std::endl;
 }
 
-
-
-
-void AutomaticResearch::doBetter() {
-
-    // Mi assicuro di partire da un minimo locale
-    double sensibility = 0.1;
-    double chi_quadro_min = 0.0;
-    gradient_descent_algorithm(par, chi_quadro_min, sensibility);
-}
 
 
 AutomaticResearch::~AutomaticResearch() {
