@@ -3,7 +3,6 @@
 #include "interpolator.h"
 
 #include "covering.h"
-#include "linear_mode.h"
 #include "results.h"
 
 #include "matrix.h"

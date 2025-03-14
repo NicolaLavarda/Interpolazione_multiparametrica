@@ -5,7 +5,6 @@
 
 #include <vector>
 #include <string>
-#include <memory>
 
 class AutomaticResearch {
 public:
@@ -13,9 +12,7 @@ public:
 
 	void beginJob();
 
-	void doBetter();
-
-	void endJob(std::vector<double>& par);
+	void endJob(std::vector<double>& par_i);
 
 	~AutomaticResearch();
 
