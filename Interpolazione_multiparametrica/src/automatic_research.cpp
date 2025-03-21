@@ -3,7 +3,6 @@
 #include "interpolator.h"
 #include "gradient_descent_algorithm.h"
 #include "BranchingCover.h"
-//#include "ThreadPool.h"
 
 #include <iostream>
 #include <vector>
@@ -15,7 +14,12 @@ AutomaticResearch::AutomaticResearch(std::vector<double> par, bool output):
     par(par), output(output), par_size(par.size())
 {
     auto it = find(par.begin(), par.end(), 0);      // restituisce un puntatore al primo elemento uguale a 0 (parametro automatico)
-    first = distance(par.begin(), it);          // restituisce l'indice di tale elemento
+    first = distance(par.begin(), it);              // restituisce l'indice di tale elemento
+
+    if (std::all_of(par.begin(), par.end(), [](double x) { return x != 0.0; })) {
+        // Il vettore di parametri contiene solo numeri diversi da zero (quindi nessuno in modalità automatic)
+        not_auto = true;
+    }
 }
 
 
@@ -68,6 +72,10 @@ void AutomaticResearch::compute(std::vector<double>& par_auto, int n) {
 
 
 void AutomaticResearch::beginJob() {
+
+    if (not_auto)
+        return;         // non è necessario effettuare una ricerca automatica (tutti i parametri sono già settati dall'utente)
+
     //Ricerca automatica logaritmica
     std::vector<double> par_auto = par;
     compute(par_auto, 0);
@@ -98,24 +106,15 @@ void AutomaticResearch::beginJob() {
         }
         else
             break;
-
     }
-
-    std::vector<double> par_prov = par;
-    BranchingCover b_generator2(par_prov);
-    b_generator2.compute(par_prov);
-    double chi_min = i_generator->fChiQuadro(par_prov);
-    if (chi_min < chi_quadro_min) {
-        par = par_prov;
-        chi_quadro_min = chi_min;
-        if (output) print("Auto-search parameters", par);
-    }
-    
-
 }
 
 
 void AutomaticResearch::endJob(std::vector<double>& par_best) {
+
+    if (not_auto)
+        return;         // non è necessario effettuare una ricerca automatica (tutti i parametri sono già settati dall'utente)
+
     par_best = par;
     if (output) print("Improved auto-search parameters:", par_best);
 }

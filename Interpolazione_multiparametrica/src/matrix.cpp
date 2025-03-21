@@ -21,13 +21,13 @@ using namespace std;
 Interpolator* i_generator = nullptr;
 
 //Funzione obbiettivo chi_quadro da usare nel calcolo delle derivate seconde per l'hessiana
-double f(vector<double> parametri) {
+double f(const vector<double>& parametri) {
     return i_generator->fChiQuadro(parametri);
 }
 
 
 // Calcolo derivate seconde miste
-double second_derivative(vector<double> params, int i, int j) {
+double second_derivative(const vector<double>& params, int i, int j) {
     auto min_it = std::min_element(params.begin(), params.end());
     //double h = *min_it * 1e-5;
     double h = 1e-5; // * fabs(*min_it);
@@ -42,7 +42,7 @@ double second_derivative(vector<double> params, int i, int j) {
 }
 
 // Calcolo derivate seconde pure
-double second_derivative(vector<double> params, int i) {
+double second_derivative(const vector<double>& params, int i) {
     //auto min_it = std::min_element(params.begin(), params.end());
     //double h = *min_it * 1e-5;
     double h = 1e-8 * (fabs(params[i]) < 1) ? 1 : fabs(params[i]);      // 1e-8 è circa sqrt(epsilon) con epsilon= 2.22e-16 che è la precisione in double
@@ -55,7 +55,7 @@ double second_derivative(vector<double> params, int i) {
 }
 
 // Funzione per calcolare l'intera matrice hessiana
-vector<vector<double>> hessian(vector<double>& params) {
+vector<vector<double>> hessian(const vector<double>& params) {
 
     // setta una nuova istanza qualora fosse cambiato qualcosa
     i_generator = Interpolator::getNewInstance();

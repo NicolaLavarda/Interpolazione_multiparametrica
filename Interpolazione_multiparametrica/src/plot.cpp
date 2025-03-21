@@ -2,6 +2,7 @@
 
 #include "interpolator.h"
 #include "chi_square.h"
+#include "input.h"
 
 #include <iostream>
 #include <vector>
@@ -27,10 +28,10 @@
 using namespace std;
 
 
-PlotGenerator::PlotGenerator(vector<double> par, vector<double> x, vector<double> sigma_x, vector<double> y, vector<double> sigma_y, string file_name):
-    par(par), x(x), y(y), sigma_x(sigma_x), sigma_y(sigma_y)
+PlotGenerator::PlotGenerator(input::Data data, input::Interpolation interpolation):
+    par(interpolation.par), x(data.x), y(data.y), sigma_x(data.sigma_x), sigma_y(data.sigma_y)
 {
-    base_name = file_name.erase(file_name.size() - 4, 4) + "_";      // rimuove '.txt' dal nome del file dati e lo usa per nominare i file dei grafici
+    base_name = interpolation.filePath.erase(interpolation.filePath.size() - 4, 4) + "_";      // rimuove '.txt' dal nome del file dati e lo usa per nominare i file dei grafici
 }
 
 

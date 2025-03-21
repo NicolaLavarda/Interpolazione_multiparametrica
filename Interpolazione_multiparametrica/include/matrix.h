@@ -7,13 +7,13 @@
 
 using namespace std;
 
-double f(vector<double> parametri);
+double f(const vector<double>& parametri);
 
-double second_derivative(vector<double> params, int i, int j);
+double second_derivative(const vector<double>& params, int i, int j);
 
-double second_derivative(vector<double> params, int i);
+double second_derivative(const vector<double>& params, int i);
 
-vector<vector<double>> hessian(vector<double>& params);
+vector<vector<double>> hessian(const vector<double>& params);
 
 
 

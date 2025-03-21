@@ -14,7 +14,7 @@
 class gradient_descent_algorithm {
 public:
 
-    gradient_descent_algorithm(std::vector<double>& par, double& chi_quadro_min, double sensibility);
+    gradient_descent_algorithm(std::vector<double>& par, double& chi_quadro_min, const double& sensibility);
 
     ~gradient_descent_algorithm();
 

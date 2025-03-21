@@ -9,15 +9,17 @@
 
 class BranchingCover {
 public:
-	BranchingCover(std::vector<double>& par_best);
+	BranchingCover(std::vector<double> par_best);
 
-	void compute(std::vector<double>& par_best);
+	void SetModel(const int& max_level_model, const int& death_rate_model, const double& step_model);
+
+	bool compute(std::vector<double>& par_best);
 
 	~BranchingCover();
 
 private:
 
-	void doBetter(std::vector<double>& par_best, int address);
+	void branching(std::vector<double> par_best, int address);
 
 	int register_par_address(int i, int address);
 
@@ -25,9 +27,11 @@ private:
 
 	bool branch_kill(int address);
 
-	int mother_address(int son_address);
+	int mother_address(int son_address) const;
 
-	int GetLevel(int address);
+	int GetLevel(int address) const;
+
+	bool contains(const std::vector<double>& par) const;
 
 	std::vector<std::vector<double>> division_direction(int address);
 
@@ -37,10 +41,10 @@ private:
 
 	int par_size;
 
-	// contenitore dei parametri migliorati nelle diverse direzioni/divisioni		(es. (1 2 3.5) )
+	// contenitore (ordinato secondo 'address_par') dei parametri migliorati nelle diverse direzioni/divisioni		(es. (1 2 3.5) )
 	std::vector<std::vector<double>> par_div;
 
-	// contenitore dei passi fatti per trovare i rispettivi parametri 'par_div'		(es. (0 0 0.5) )
+	// contenitore (ordinato secondo 'address_par') dei passi fatti per trovare i rispettivi parametri 'par_div'		(es. (0 0 0.5) )
 	std::vector<std::vector<double>> div_steps;
 
 	// contenitore (ordinato secondo 'address_par') dei parametri che sono migliorati (True) o meno (False) rispetto ai parametri madre che li hanno generati
@@ -63,6 +67,10 @@ private:
 
 	// passo ramificazioni iniziali (es. 0.2 = 20% del parametro)
 	double step;
+
+	// variabili per 'contains'
+	const double epsilon = 1e-6;				// valore di confronto tra double
+	int ignore = 2;                             //ignora gli ultimi 'ignore' vettori aggiunti al contenitore 'par_div'
 
 
 };

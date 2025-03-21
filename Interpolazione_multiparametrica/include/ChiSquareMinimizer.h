@@ -19,17 +19,19 @@ public:
 
 private:
 
-	void computeCovering(std::vector<double>& par_best, int cicle_programms);
+	void decreseSteps(std::vector<double>& par_best, std::vector<double>& par_best_prec);
 
-	bool faster, approx, complex, retta;	  // opzioni da riga di comando
+	void computeCovering(std::vector<double>& par_best, int cicle_programm);
 
-	std::vector<double> par_best;		 //parametri migliori in assoluto
+	bool faster, approx, complex;	  // opzioni da riga di comando
+
+	//std::vector<double> par_best;		 //parametri migliori in assoluto
 	double chi_quadro_min = 1e30;        //Chi quadro minimo assoluto (in ogni istante di tutto il programma)
 
-	bool errore_lin = false;		// serve per 'compute'
-	int cicle_programms = 0;        // Numero di cicli di riesecuzione del programma
-
+	// variabili per 'computeCovering'
 	covering* c_generator = nullptr;
+	std::vector<double> steps;
+	bool update_steps = false;
 
 };
 

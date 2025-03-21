@@ -3,6 +3,8 @@
 
 #include "interpolator.h"
 
+#include "input.h"
+
 #include <vector>
 #include <string>
 #include <memory>
@@ -17,7 +19,7 @@
 class PlotGenerator {
 public:
 
-    PlotGenerator(std::vector<double> par, std::vector<double> x, std::vector<double> sigma_x, std::vector<double> y, std::vector<double> sigma_y, std::string file_name);
+    PlotGenerator(input::Data data, input::Interpolation interpolation);
 
     void compute_plot_function();
 
