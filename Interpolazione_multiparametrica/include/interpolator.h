@@ -12,20 +12,12 @@
 
 class Interpolator {
 public:
-    // Disabilita copia e assegnazione
-    //Interpolator(const Interpolator&) = delete;
-    //Interpolator& operator=(const Interpolator&) = delete;
 
     // Accesso all'istanza permanente (termina alla fine del programma)
     static Interpolator& getInstance();
 
     // Accesso ad una nuova istanza già settata
-    //static std::unique_ptr<Interpolator> getNewInstance();
-
-
     static Interpolator* getNewInstance();
-
-
 
     // Metodi per impostare i dati
     void setExpression(const std::string& espressione_interpolante);
@@ -33,7 +25,7 @@ public:
                  std::vector<double>& y_val, std::vector<double>& sigma_y_val);
 
     // Metodo per normalizzare l'ordine di grandezza dei parametri
-    void normalizeTo10(std::vector<double>& par);
+    static void normalizeTo10(std::vector<double>& par);
 
     // Metodo static per ottenere gli ordini di grandezza corretti dei parametri
     static std::vector<double> getParOrder();
@@ -62,13 +54,13 @@ private:
     double dfdx(int i);
 
     // Metodo per modificare l'ordine di grandezza di un parametro
-    void setOrder(int par_num, double order, std::string& f_interp);
+    static void setOrder(int par_num, double order, std::string& f_interp);
 
     // Dati recuperati dal file '.txt'
     std::vector<double> x, sigma_x, y, sigma_y;
 
     // funzione da interpretare (da non modificare)
-    std::string f_interpolante_const;
+    static std::string f_interpolante_const;
 
     // funzione da interpretare (modificabile per cambiare l'ordine di grandezza delle variabili)
     std::string f_interpolante;
@@ -95,16 +87,14 @@ private:
     int x_size;
 
     // Parametri a disposizione
-    std::vector<std::string> name_par = { "a","b","c", "d", "e" };
-    //static std::map<int, std::string> param_map;
+    static std::vector<std::string> name_par;
 
-    // Mappa per tenere traccia degli ordini modificati dei parametri
+    // Vettore per tenere traccia degli ordini modificati dei parametri
     static std::vector<double>  order_par;
 
     // numero più vicino a cui normalizzare i parametri
     static double base_order;
 
-    //friend std::unique_ptr<Interpolator> std::make_unique<Interpolator>();
 };
 
 #endif

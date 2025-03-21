@@ -15,33 +15,35 @@
 
 
 // costruttore di base
-covering::covering(std::vector<double> par_best, double chi_quadro_min, double cicle_programms, bool output, bool faster) :
-    par_best(par_best), chi_quadro_min(chi_quadro_min), cicle_programms(cicle_programms), output(output), faster(faster)
+covering::covering(std::vector<double> par_best, double chi_quadro_min, double cicle_programms, bool output) :
+    par_best(par_best), chi_quadro_min(chi_quadro_min), cicle_programms(cicle_programms), output(output)
 {
-
-    par_prov = par_best;
+    par_center = par_best;
     par = par_best;
-    //chi_quadro_ciclo_prec = chi_quadro_min;
 
-    livello = 0;                         // Livello iniziale
-
-    spostamento = 0.1;       // es. spostamento=0.1 allora il primo cubo n-dim di ricoprimento è largo il 10% di ogni parametro nelle rispettive direzioni
-    spostamento /= cicle_programms * 2;     // dimezzo lo spostamento ad ogni riesecuzione ('cicle_programms++')
-
-    for (int i = 0; i < par.size(); i++)
-        passo.push_back(spostamento * ((fabs(par[i]) > 0.5) ? fabs(par[i]) : 2));        //spostamento * 2 se miniore di 0.5 in modo che il rispettivo 'passo' sia pari a 0.1*2=0.2 (che nella funzione diventerà un range semilargo 0.1)
+    // vettore passi di default
+    double spostamento = 0.05;              // es. spostamento=0.1 allora il primo cubo n-dim di ricoprimento è largo il 10% di ogni parametro nelle rispettive direzioni
+    spostamento /= cicle_programms;         // riduco lo spostamento ad ogni riesecuzione ('cicle_programms++')
+    SetSteps(spostamento);
 
     pool = new ThreadPool(numThreads);
 }
 
+void covering::SetSteps(std::vector<double> steps) {
+    passo = steps;
+}
 
-void covering::status(int cicle_val, int k_val) {
+void covering::SetSteps(double step) {
+    passo.clear();
+    for (int i = 0; i < par.size(); i++)
+        passo.push_back(step * ((fabs(par[i]) > 0.5) ? fabs(par[i]) : 2));        //step * 2 se miniore di 0.5 in modo che il rispettivo 'passo' sia pari a 0.1*2=0.2 (che nella funzione diventerà un range semilargo 0.1)
+}
 
-    cicle = cicle_val;
-    k = k_val;
 
-    if (!output) { std::cout << "\rNumber of program iterations: " << cicle_programms << flush; }
-    //else          { std::cout << endl << "Livello " << cicle << "." << livello << ":";           }
+void covering::status() {
+
+    if (!output)
+        std::cout << "\rNumber of program iterations: " << cicle_programms << flush;
 
 }
 
@@ -58,12 +60,6 @@ void covering::ricoprimento(int dimensione, bool is_on_surface) {
                 double sum_chi_l = 0;
                 // Chiama l'algoritmo di bisezione
                 bisection_algorithm(par_l, passo_l, sum_chi_l);
-
-                /*
-                for (size_t i = 0; i < par_l.size(); i++)
-                    std::cout << par_l[i] << "\t";
-                std::cout << sum_chi_l << std::endl;
-                */
                 
                 // Crea un nuovo vector con il valore aggiuntivo
                 par_l.push_back(sum_chi_l);
@@ -71,14 +67,12 @@ void covering::ricoprimento(int dimensione, bool is_on_surface) {
                 return par_l;
             };
 
-
             //std::cout << "finish = " << finish << std::endl;
             if (counter < max_tasksCompleted)    // se non devo terminare       !GetFinish()
             {
                 // Aggiungo al pool di multi-thread come task la chiamata di una lambdafunction che ritorna i parametri migliorati da 'bisection_algorithm(par_bis, passo, sum_chi_p);'
                 analysis.emplace_back(pool->enqueue(lambda, par, passo));
                 counter++;
-                //std::cout << "\t" << counter << std::endl;
             }
 
             //-------------------------------------------------------------------------------------------
@@ -88,12 +82,12 @@ void covering::ricoprimento(int dimensione, bool is_on_surface) {
 
     // Generiamo tutti gli spostamenti per questa dimensione usando il passo specifico (double)
     for (double delta = -livello * passo[dimensione]; delta <= (livello * passo[dimensione] + 1e-9); delta += passo[dimensione]) {
-        par[dimensione] = par_prov[dimensione] + delta;  // Aggiorna la coordinata corrente
+        par[dimensione] = par_center[dimensione] + delta;  // Aggiorna la coordinata corrente
         
         int m = 0;
         for (int t = 0; t < par.size(); t++)
         {
-            if ((fabs(par[t] - (par_prov[t] - livello * passo[t])) < 1e-9) || (fabs(par[t] - (par_prov[t] + livello * passo[t])) < 1e-9)) m++;
+            if ((fabs(par[t] - (par_center[t] - livello * passo[t])) < 1e-9) || (fabs(par[t] - (par_center[t] + livello * passo[t])) < 1e-9)) m++;
         }
         bool surface_condition = m;
         

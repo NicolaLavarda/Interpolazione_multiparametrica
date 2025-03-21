@@ -9,11 +9,37 @@
 
 class input {
 public:
+
+	// Dati iniziali
+	struct Data {
+		std::vector<double> x;
+		std::vector<double> sigma_x;
+		std::vector<double> y;
+		std::vector<double> sigma_y;
+	};
+
+	struct Interpolation {
+		std::vector<double> par;
+		std::string interpolating_function;
+		std::string filePath;
+		std::vector<std::string> name_parameters = { "a", "b", "c", "d", "e" };
+	};
+
+
+	// Costruttore per utilizzare info da riga di comando
 	input(int argc, char* argv[]);
 
-	void compute(std::vector<double>& par, int& num_a, std::map<std::string, bool>& options,
-				  std::vector<double>& x, std::vector<double>& sigma_x,
-				  std::vector<double>& y, std::vector<double>& sigma_y);
+	// Metodi per riempire le due structs e 'options' con info da riga di comando ('argc' e 'argv')
+	void compute(std::map<std::string, bool>& options);
+
+	// Metodi per salvare dati in structs
+	void SetData(std::vector<double>& x, std::vector<double>& sigma_x,
+				 std::vector<double>& y, std::vector<double>& sigma_y);
+	void SetInterpolation(std::vector<double> par, std::string interpolating_function, std::string filePath);
+
+	// Metodi per ottenere le structs con i dati
+	Data GetData();
+	Interpolation GetInterpolation();
 
 	bool improved(const std::string filePath, std::vector<double> par_best);
 
@@ -21,7 +47,7 @@ public:
 
 	std::vector<double> GetErrorsFromFile();
 
-
+	void help();
 
 private:
 	// restituisce il valore di un numero contenuto nel file 'filePath', nella riga in cui si trova 'Target', dopo il carattere 'AfterThat'
@@ -31,26 +57,15 @@ private:
 
 	double GetErrorOfParameter(const std::string parameter);
 
-
-	// Prendo l'istanza al Singleton 'Interpolator'
-	Interpolator& i_generator = Interpolator::getInstance();
-
-	std::string filePath;
-
 	// Argomenti di 'input'
 	int argc;
 	char** argv;
 
-	// Argomenti di 'beginJob'
-	std::vector<double> x, sigma_x, y, sigma_y;
-	std::vector<double> par;
+	// struct
+	Data data;
+	Interpolation interpolation;
 
-
-	std::vector<std::string> name_parameters = { "a","b","c", "d", "e" };
 };
-
-
-
 
 
 #endif

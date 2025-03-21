@@ -2,6 +2,7 @@
 
 #include "util.h"
 #include "results.h"      // per stampare i risultati sul file dati
+#include "input.h"
 
 #include <iostream>
 #include <fstream>
@@ -87,10 +88,15 @@ int readFile(const std::string filePath,
 
 
 
-void writeFile(const std::string filePath,
-     std::vector<double>& x, std::vector<double>& sigma_x,
-     std::vector<double>& y, std::vector<double>& sigma_y,
-     std::vector<double> par_best, bool approx, std::string function) {
+void writeFile(input::Data data, input::Interpolation interpolation, bool approx) {
+
+    const std::vector<double> par_best = interpolation.par;
+    const std::string function = interpolation.interpolating_function.erase(0, 4);       // rimuovo "(1)*" all'inizio della funzione (vedi 'input')
+    const std::string filePath = interpolation.filePath;
+    const std::vector<double>& x = data.x;
+    const std::vector<double>& sigma_x = data.sigma_x;
+    const std::vector<double>& y = data.y;
+    const std::vector<double>& sigma_y = data.sigma_y;
     
     std::ofstream file(filePath);
     if (!file.is_open()) {

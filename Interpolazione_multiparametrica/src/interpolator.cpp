@@ -11,9 +11,7 @@
 #include <functional>
 #include <algorithm>
 #include <stdexcept>
-
 #include <iomanip>
-#include <memory>  // Per std::unique_ptr
 
 
 static bool flag_in_exp = false;
@@ -31,41 +29,11 @@ Interpolator::Interpolator() {
 }
 
 
-
-
-/*
-// Accesso ad una nuova istanza già settata
-std::unique_ptr<Interpolator> Interpolator::getNewInstance() {
-    Interpolator& i_generator = Interpolator::getInstance();
-    return i_generator.getNewInstance();
-}
-
-// Utilizzata da 'getNewInstance()' per settare le variabili accessibili solo da una precisa istanza (non static)
-std::unique_ptr<Interpolator> Interpolator::setNewInstance() {
-    auto instance = std::make_unique<Interpolator>();
-
-    instance->setExpression(f_interpolante);        // imposta le variabili uguali a qualsiasi istanza Interpolator
-    instance->setData(x, sigma_x, y, sigma_y);      //
-
-    return instance; // RVO (Return Value Optimization) rende efficiente il ritorno di unique_ptr
-}
-*/
-
-/*
 Interpolator* Interpolator::getNewInstance() {
-    Interpolator* instance = new Interpolator();
-
-    instance->setExpression(f_interpolante);      // imposta le variabili uguali a qualsiasi istanza Interpolator
-    instance->setData(x, sigma_x, y, sigma_y);    //
-
-    return instance;
-}
-*/
-
-
-Interpolator* Interpolator::getNewInstance() {
-    if (!(flag_in_exp && flag_in_data))
+    if (!(flag_in_exp && flag_in_data)) {
+        throw std::runtime_error("Accessing new Interpolator istance without primary setting data");
         return nullptr;
+    }
     Interpolator& i_generator = Interpolator::getInstance();
     return i_generator.setNewInstance();
 }
@@ -173,8 +141,8 @@ void Interpolator::normalizeTo10(std::vector<double>& par) {
         std::cout << "order" << i << " " << std::fixed << std::setprecision(8) << order_par[i] << std::endl;
     }
     */
-
-    setExpression(f_interp);
+    Interpolator& i_generator_base = Interpolator::getInstance();
+    i_generator_base.setExpression(f_interp);
 }
 
 std::vector<double> Interpolator::getParOrder() {
@@ -192,7 +160,7 @@ double Interpolator::fChiQuadro(std::vector<double> par) {
     symbol_table.get_variable("e")->ref() = double(par[4]);
 
     double sum_chi = 0;
-    static bool err_x = sigma_x.empty();
+    static bool err_x = sigma_x.empty();        // per tutto il programma
     if (err_x)
     {
         for (int i = 0; i < x_size; i++)
@@ -309,3 +277,7 @@ int Interpolator::getDimx() {
 // Definizione delle variabili statiche
 std::vector<double> Interpolator::order_par;
 double Interpolator::base_order;
+
+std::vector<std::string> Interpolator::name_par = { "a","b","c", "d", "e" };
+
+std::string Interpolator::f_interpolante_const;

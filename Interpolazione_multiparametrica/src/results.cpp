@@ -19,13 +19,7 @@
 Results_base::Results_base(std::vector<double> par_base, bool approx_bool, std::ostream& output) :
     par(par_base), approx_bool(approx_bool) , out(output)
 {
-    
-    // Normalizzo i parametri perché abbiano lo stesso ordine di grandezza
-    i_generator_base.normalizeTo10(par);
-    par_order = i_generator_base.getParOrder();      // vettore che contiene i vari ordini di grandezza
-
-
-    i_generator = Interpolator::getNewInstance();
+    par_order = Interpolator::getParOrder();      // vettore che contiene i vari ordini di grandezza con cui sono stati normalizzati i parametri
 
     chi_min = i_generator->fChiQuadro(par);
     par_size = par.size();
@@ -37,11 +31,9 @@ Results_base::Results_base(std::vector<double> par_base, bool approx_bool, std::
         par[i] *= par_order[i];
     }
     */
-    
-
 }
 
-void Results_base::general_result(double valore, double errore, std::string nome, bool arrotondamento) {
+void Results_base::general_result(const double& valore, const double& errore, const std::string& nome, const bool& arrotondamento) const {
 
     double err_percentuale = fabs(errore / valore) * 100;
     if (!arrotondamento)
@@ -87,11 +79,6 @@ Result1::Result1()
 Result2::Result2()
     : Results_base(par, approx_bool, out) {
 
-    for (int i = 0; i < par.size(); i++)
-    {
-        std::cout << "par" << i << " " << std::fixed << std::setprecision(8) << par[i] << "\t";
-    }
-
     //Calcolo Hessiana
     std::vector<std::vector<double>> H = hessian(par);
     //out << "Matrice Hessiana: " << endl;
@@ -115,7 +102,7 @@ Result2::Result2()
 }
 
 
-Results::Results(std::vector<double>& par_derived, bool approx_bool, std::ostream& output) :
+Results::Results(std::vector<double> par_derived, bool approx_bool, std::ostream& output) :
     Results_base(par_derived, approx_bool, output), Result1(), Result2() {
     //chiama in ordine 'Results_base', 'Result1' e 'Result2' ed infine qui dentro al costruttore di 'Results'
     // 
@@ -135,10 +122,23 @@ Results::Results(std::vector<double>& par_derived, bool approx_bool, std::ostrea
         out << "Possible overestimation of errors" << endl;
     out << "----------------------------------------------------------------" << endl << endl;
 
-    // aggiorno i parametri con quelli normalizzati allo stesso ordine di grandezza
-    par_derived = par;
-
     delete i_generator;
 
 }
 
+
+std::vector<double> Results_base::GetErrors(const std::vector<double>& par) {
+
+    //Calcolo Hessiana
+    std::vector<std::vector<double>> H = hessian(par);
+
+    //Calcolo matrice covarianza (inversa dell'hessiana)
+    std::vector<std::vector<double>> invH = inversa(H);
+
+    std::vector<double> errors;
+    int n = par.size();
+    for (int i = 0; i < n; i++)
+        errors.push_back(sqrt(invH[i][i]));
+
+    return errors;
+}

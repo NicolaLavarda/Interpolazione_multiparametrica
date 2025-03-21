@@ -22,6 +22,7 @@ private:
 
 	void print(const std::string name, std::vector<double> par);
 
+	bool not_auto = false;		// se diventa 'true' non è necessario effettuare una ricerca automatica (tutti i parametri sono già settati dall'utente)
 
 	std::vector<double> par;	// parametri da trovare/migliorare
 	bool output;	// flag per stampare a schermo calcoli intermedi

@@ -9,15 +9,9 @@
 #include <cmath>
 #include <stdexcept>
 
-BranchingCover::BranchingCover(std::vector<double>& par_best):
-    par_size(par_best.size()), level(0), max_level(7), death_rate(2), step(0.2)
+BranchingCover::BranchingCover(std::vector<double> par_best):
+    par_size(par_best.size()), level(0), max_level(8), death_rate(1), step(0.2)
 {
-    // Mi assicuro di partire da un minimo locale all'inizio (irrilevante, ma lo faccio ok)
-    double sensibility = 0.1;
-    double chi_quadro_min = 0.0;
-    gradient_descent_algorithm(par_best, chi_quadro_min, sensibility);
-
-
     // Generazione delle direzioni iniziali (base per le successive)
     int k = par_size;
     div.assign(par_size * 2, std::vector<double> (k, 0.0));
@@ -31,26 +25,32 @@ BranchingCover::BranchingCover(std::vector<double>& par_best):
     }
 }
 
-void BranchingCover::compute(std::vector<double>& par_best) {
+void BranchingCover::SetModel(const int& max_level_model, const int& death_rate_model, const double& step_model) {
+    max_level = max_level_model;
+    death_rate = death_rate_model;
+    step = step_model;
+}
 
-    doBetter(par_best, std::pow(10, max_level));
+bool BranchingCover::compute(std::vector<double>& par_best) {
+    bool improved = false;
+
+    branching(par_best, std::pow(10, max_level));
 
     // controllo qual è il migliore
     double min_chi = i_generator->fChiQuadro(par_best);
-    //int i = 0;
     for (const std::vector<double>& par : par_div)
     {
         double chi_i = i_generator->fChiQuadro(par);
         if (chi_i < min_chi) {
             par_best = par;
             min_chi = chi_i;
-            //std::cout << i << "   " << chi_i << std::endl;
+            improved = true;
         }
-        //i++;
     }
+    return improved;
 }
 
-void BranchingCover::doBetter(std::vector<double>& par_best, int address) {
+void BranchingCover::branching(std::vector<double> par_best, int address) {
     level++;
 
     // creo 'div' insieme di gradienti che puntano in diverse direzioni
@@ -72,7 +72,7 @@ void BranchingCover::doBetter(std::vector<double>& par_best, int address) {
         //std::cout << par_i[0] << "\t" << par_i[1] << "\t" << par_i[2] << "\t" << i_generator->fChiQuadro(par_i) << std::endl;
         
         if (level != max_level && !branch_kill(ad))     // se sono alla fine (max_level) oppure non migliora da tempo questo ramo, allora non lo faccio più continuare/dividere
-            doBetter(par_i, ad);   // si divide in più direzioni e riparte
+            branching(par_i, ad);   // si divide in più direzioni e riparte
     }
     level--;
 }
@@ -98,12 +98,14 @@ bool BranchingCover::go_on(std::vector<double>& par_i, std::vector<double> div) 
     }
 
     return (i_generator->fChiQuadro(par_i) < chi_min) ? true : false;     // 'true' se ha migliorato il chi_quadro
-
 }
 
 
 bool BranchingCover::branch_kill(int address) {
 
+    if (contains(par_div[address_par[address]]))
+        return true;                                // true = devo killare il ramo se per quel punto è già passato un'altro ramo
+    
     int check = 0;
     for (int i = 0; i < death_rate; i++)
     {
@@ -120,7 +122,7 @@ bool BranchingCover::branch_kill(int address) {
 }
 
 
-int BranchingCover::mother_address(int son_address) {
+int BranchingCover::mother_address(int son_address) const {
     int max = std::pow(10, max_level);
     if (son_address == max) return 0; // Caso particolare
 
@@ -135,7 +137,7 @@ int BranchingCover::mother_address(int son_address) {
     return son_address - (temp % 10) * pos;
 }
 
-int BranchingCover::GetLevel(int address) {
+int BranchingCover::GetLevel(int address) const {
 
     int level = max_level; // Posizione della cifra da modificare
 
@@ -144,14 +146,25 @@ int BranchingCover::GetLevel(int address) {
         level--;
     }
 
-    static int a = 0;
-    a++;
-    if (a==10 || a==23)
-    {
-        std::cout << address << "    " << level << std::endl;
-    }
-
     return level;
+}
+
+
+// Funzione per verificare se un vettore è già presente in par_div
+bool BranchingCover::contains(const std::vector<double>& par) const {
+
+    int limit = par_div.size() - ignore;        // Considera solo i primi n-'ignore' vettori ('ignore'=2 membro private)
+
+    if (par_div.size() < ignore)
+        return false; // Se non ci sono abbastanza vettori in par_div, restituisci false (quindi non killa il ramo in questo caso)
+
+    for (int i = 0; i < limit; i++) {
+        if (std::equal(par_div[i].begin(), par_div[i].end(), par.begin(),
+                [this](double a, double b) { return std::fabs(a - b) < epsilon; })) {
+            return true;
+        }
+    }
+    return false;
 }
 
 
@@ -183,7 +196,6 @@ std::vector<std::vector<double>> BranchingCover::division_direction(int address)
 
         if (improvements[address_par[address]])
             div[pos][pos] *= step * GetLevel(address);      // se prima è migliorato, la direzione da cui sta progredendo ne aumento il passo (probabilmente è la direzione giusta)
-        
     }
 
     return div_n;
