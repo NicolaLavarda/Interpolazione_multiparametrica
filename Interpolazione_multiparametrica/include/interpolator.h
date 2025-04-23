@@ -27,6 +27,9 @@ public:
     // Metodo per normalizzare l'ordine di grandezza dei parametri
     static void normalizeTo10(std::vector<double>& par);
 
+    // Riparta i parametri al loro ordine di grandezza originale
+    static void denormalize(std::vector<double>& par);
+
     // Metodo static per ottenere gli ordini di grandezza corretti dei parametri
     static std::vector<double> getParOrder();
 

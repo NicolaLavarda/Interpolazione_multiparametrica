@@ -3,6 +3,7 @@
 #include "interpolator.h"
 #include "chi_square.h"
 #include "input.h"
+#include "results.h"
 
 #include <iostream>
 #include <vector>
@@ -29,8 +30,10 @@ using namespace std;
 
 
 PlotGenerator::PlotGenerator(input::Data data, input::Interpolation interpolation):
-    par(interpolation.par), x(data.x), y(data.y), sigma_x(data.sigma_x), sigma_y(data.sigma_y)
+    x(data.x), y(data.y), sigma_x(data.sigma_x), sigma_y(data.sigma_y)
 {
+    Interpolator::denormalize(interpolation.par);
+    par = interpolation.par;
     base_name = interpolation.filePath.erase(interpolation.filePath.size() - 4, 4) + "_";      // rimuove '.txt' dal nome del file dati e lo usa per nominare i file dei grafici
 }
 
@@ -53,11 +56,13 @@ void PlotGenerator::compute_plot_chi_distribution() {
         return;
 
     //Calcolo gli errori sui parameteri per capire quanto grandi plottare i grafici sulle distrubuzioni del chi quadro
-    vector<double> sigma_par;
+    vector<double> sigma_par = Results::GetErrors(par);
+    /*
     double chi_piu_uno_val = 1; if (false) chi_piu_uno_val = chi_quadro_piu_uno(par.size());    //metto if(true) se non voglio l'errore sul singolo parametro ma calcolato correttamente per più parametri con la funzione 'chi_quadro_piu_uno'
     double range = 0.20;   //cerco l'errore al chi+1 entro +-20% del valore del parametro (in caso fosse più grande la funzione allarga la ricerca)
     for (int i = 0; i < par.size(); i++)
         sigma_par.push_back(chi_piu_uno_par_n(par, i, chi_piu_uno_val, range));
+    */
 
     //Creazione dei grafici di distribuzione del chi quadro
     plot_chi_distribution(grafici_chi2, par, sigma_par);

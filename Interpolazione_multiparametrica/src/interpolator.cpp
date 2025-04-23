@@ -145,6 +145,21 @@ void Interpolator::normalizeTo10(std::vector<double>& par) {
     i_generator_base.setExpression(f_interp);
 }
 
+
+void Interpolator::denormalize(std::vector<double>& par) {
+
+    int n = par.size();
+    for (int i = 0; i < n; ++i) {
+        par[i] *= order_par[i];
+        order_par[i] = 1;
+    }
+
+    std::string f_interp = f_interpolante_const;    //prende ogni volta la funzione definita all'inizio dall'utente
+    Interpolator& i_generator_base = Interpolator::getInstance();
+    i_generator_base.setExpression(f_interp);
+}
+
+
 std::vector<double> Interpolator::getParOrder() {
     return order_par;
 }
