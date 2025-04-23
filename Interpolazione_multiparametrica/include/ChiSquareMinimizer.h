@@ -19,7 +19,7 @@ public:
 
 private:
 
-	void decreseSteps(std::vector<double>& par_best, std::vector<double>& par_best_prec);
+	void decreseSteps(const std::vector<double>& par_best, const std::vector<double>& par_best_prec);
 
 	void computeCovering(std::vector<double>& par_best, int cicle_programm);
 

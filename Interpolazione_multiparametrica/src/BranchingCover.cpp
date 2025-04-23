@@ -46,7 +46,16 @@ bool BranchingCover::compute(std::vector<double>& par_best) {
             min_chi = chi_i;
             improved = true;
         }
+        /*
+        if (true)
+        {
+            for (int i = 0; i < par_best.size(); i++)
+                std::cout << par[i] << "\t";
+            std::cout << chi_i <<  std::endl;
+        }
+        */
     }
+    //std::cout << std::endl; std::cout << std::endl; std::cout << std::endl; std::cout << std::endl; std::cout << std::endl;
     return improved;
 }
 

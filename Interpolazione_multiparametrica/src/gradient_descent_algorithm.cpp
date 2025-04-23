@@ -105,7 +105,7 @@ std::vector<double> gradient_descent_algorithm::grad_f_chi_quadro(const std::vec
     // Calcolo della derivata parziale per ogni parametro
     for (int i = 0; i < par_size; ++i) {
         
-        double h = 1e-6 * (fabs(par[i]) < 1) ? 1 : fabs(par[i]);      // 1e-8 è circa sqrt(epsilon) con epsilon= 2.22e-16 che è la precisione in double
+        double h = 1e-6 * (fabs(par[i]) < 1 ? 1 : fabs(par[i]));      // 1e-8 è circa sqrt(epsilon) con epsilon= 2.22e-16 che è la precisione in double
 
         // Crea una copia del vettore dei parametri
         std::vector<double> par_plus = par;

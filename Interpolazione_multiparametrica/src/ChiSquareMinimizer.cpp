@@ -59,7 +59,7 @@ void ChiSquareMinimizer::compute(std::vector<double>& par_best) {
         // miglioro i parametri con un algoritmo di discesa del gradiente
         gradient_descent_algorithm(par_best, chi_quadro_min, 0.005);         // sensibility = 0.005
 
-        // se sono migliorati entro solo 5 sigma allora diminuisco i passi di 'covering' a 1 sigma
+        // diminuisco i passi di 'covering' proporzionalmente a quanto sono migliorati i parametri rispetto al ciclo precedente
         decreseSteps(par_best, par_best_prec);
 
         if (chi_quadro_min_prec - chi_quadro_min < 0.001) {
@@ -87,25 +87,44 @@ void ChiSquareMinimizer::end(std::vector<double>& par_best) {
 }
 
 
-void ChiSquareMinimizer::decreseSteps(std::vector<double>& par_best, std::vector<double>& par_best_prec) {
+void ChiSquareMinimizer::decreseSteps(const std::vector<double>& par_best, const std::vector<double>& par_best_prec) {
 
-    // Controllo se i parametri attuali differiscono da quelli del ciclo precedente entro 3 sigma dei presenti parametri
-    std::vector<double> errors = Results::GetErrors(par_best);
-    int check = 0;
+    // diminuisco i passi di 'covering' proporzionalmente a quanto sono migliorati i parametri rispetto al ciclo precedente
+    std::vector<double> errors = Results::GetErrors(par_best);      // 'steps' non minori di mezzo sigma
+    steps.clear();
     int n = par_best.size();
     for (int i = 0; i < n; i++)
+        steps.push_back(std::fabs(par_best[i] - par_best_prec[i]) < errors[i]*2 ? errors[i]/5 : std::fabs(par_best[i] - par_best_prec[i])/10);
+
+    /*
+    std::cout << "par_best: \t";
+    for (int i = 0; i < par_best.size(); i++)
     {
-        if (std::fabs(par_best[i] - par_best_prec[i]) < 5 * errors[i])
-            check++;
+        std::cout << par_best[i] << "\t";
     }
-    if (check == n)     // i parametri non sono migliorati più di 3 sigma dal ciclo precedente
+    std::cout << std::endl;
+
+    std::cout << "par_best_prec: \t";
+    for (int i = 0; i < par_best_prec.size(); i++)
     {
-        // Riduco il passo del prossimo covering su ogni parametro pari a 1 sigma dell'errore sul rispettivo parametro
-        steps = errors;     // poi utilizzo 'c_generator->SetSteps(steps)' in 'computeCovering'
-        update_steps = true;
+        std::cout << par_best_prec[i] << "\t";
     }
-    else
-        update_steps = false;
+    std::cout << std::endl;
+
+    std::cout << "errors: \t";
+    for (int i = 0; i < errors.size(); i++)
+    {
+        std::cout << errors[i] << "\t";
+    }
+    std::cout << std::endl;
+
+    std::cout << "steps: \t";
+    for (int i = 0; i < steps.size(); i++)
+    {
+        std::cout << steps[i] << "\t";
+    }
+    std::cout << std::endl;
+    */
 }
 
 
@@ -113,9 +132,19 @@ void ChiSquareMinimizer::computeCovering(std::vector<double>& par_best, int cicl
     
     c_generator = new covering(par_best, chi_quadro_min, cicle_programm, complex);
 
-    // se sono nelle condizioni definite in 'compute' definisco dei passi personalizzati per il ricoprimento
-    if (update_steps)
+    // diminuisco i passi di 'covering' proporzionalmente a quanto sono migliorati i parametri rispetto al ciclo precedente (analizzato in 'compute')
+    if (cicle_programm > 2)
         c_generator->SetSteps(steps);
+
+    if (complex && cicle_programm > 2)
+    {
+        std::cout << "steps: \t";
+        for (int i = 0; i < steps.size(); i++)
+        {
+            std::cout << steps[i] << "\t";
+        }
+        std::cout << std::endl;
+    }
 
     //Stamapa a schermo a che ciclo di programma si è arrivati
     c_generator->status();
