@@ -14,8 +14,8 @@ int main(int argc, char* argv[]) {
     //------------LETTURA INPUT-------------------------
 
     std::map<std::string, bool> options = {
-        {"improve", false},     // imposta i parametri di partenza pari a quelli già calcolati in precedenza e riportati nel file di input
-        {"faster", false},      // fa più veloce
+        {"improve", false},     // imposta i parametri di partenza pari a quelli giï¿½ calcolati in precedenza e riportati nel file di input
+        {"faster", false},      // fa piï¿½ veloce
         {"approx", false},      // approssima i risultati con le giuste cifre significative
         {"complex", false},     // mostra i "passaggi intermedi" nella minimizzazione del chi quadro
         {"save", false},        // salva i risultati nel file contenente i dati solo se il chi quadro migliora rispetto a quello presente nel file (oppure se non presente)

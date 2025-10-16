@@ -20,7 +20,7 @@ static bool flag_in_data = false;
 // Costruttore privato
 Interpolator::Interpolator() {
 
-    base_order = 10;     // numero più vicino a cui normalizzare i parametri
+    base_order = 10;     // numero piï¿½ vicino a cui normalizzare i parametri
 
     // Inizializzo gli ordini di correzione dei parametri a 1 solo la prima volta che creo la prima istanza
     if (order_par.empty())
@@ -100,7 +100,7 @@ void Interpolator::setOrder(int par_num, double order, std::string& f_interp) { 
 
     // Costruisco l'espressione regolare per cercare il parametro come parola intera
     std::regex pattern("\\b" + parametro + "\\b");
-    // La sostituzione sarà parametro*order, ad es. "b*1000"
+    // La sostituzione sarï¿½ parametro*order, ad es. "b*1000"
     std::string sostituzione = "(" + parametro + "*" + std::to_string(order) + ")";
     f_interp = std::regex_replace(f_interp, pattern, sostituzione);
 
@@ -168,11 +168,31 @@ std::vector<double> Interpolator::getParOrder() {
 double Interpolator::fChiQuadro(std::vector<double> par) {
 
     //I parametri basta riassegnarli una volta alla chiamata della funzione, la x invece ovviamente va riassegnata ad ogni iterazione del ciclo for per il calcolo del chi quadro
-    symbol_table.get_variable("a")->ref() = double(par[0]);
-    symbol_table.get_variable("b")->ref() = double(par[1]);
-    symbol_table.get_variable("c")->ref() = double(par[2]);
-    symbol_table.get_variable("d")->ref() = double(par[3]);
-    symbol_table.get_variable("e")->ref() = double(par[4]);
+    unsigned int par_size = par.size();
+    if(par_size == 1)
+        symbol_table.get_variable("a")->ref() = double(par.at(0));
+    else if(par_size == 2){
+        symbol_table.get_variable("a")->ref() = double(par.at(0));
+        symbol_table.get_variable("b")->ref() = double(par.at(1));
+    }
+    else if(par_size == 3){
+        symbol_table.get_variable("a")->ref() = double(par.at(0));
+        symbol_table.get_variable("b")->ref() = double(par.at(1));
+        symbol_table.get_variable("c")->ref() = double(par.at(2));
+    }
+    else if(par_size == 4){
+        symbol_table.get_variable("a")->ref() = double(par.at(0));
+        symbol_table.get_variable("b")->ref() = double(par.at(1));
+        symbol_table.get_variable("c")->ref() = double(par.at(2));
+        symbol_table.get_variable("d")->ref() = double(par.at(3));
+    }
+    else if(par_size == 5){
+        symbol_table.get_variable("a")->ref() = double(par.at(0));
+        symbol_table.get_variable("b")->ref() = double(par.at(1));
+        symbol_table.get_variable("c")->ref() = double(par.at(2));
+        symbol_table.get_variable("d")->ref() = double(par.at(3));
+        symbol_table.get_variable("e")->ref() = double(par.at(4));
+    }
 
     double sum_chi = 0;
     static bool err_x = sigma_x.empty();        // per tutto il programma
@@ -180,16 +200,16 @@ double Interpolator::fChiQuadro(std::vector<double> par) {
     {
         for (int i = 0; i < x_size; i++)
         {
-            symbol_table.get_variable("x")->ref() = double(x[i]);
-            sum_chi += std::pow((y[i] - expression.value()) / sigma_y[i], 2);
+            symbol_table.get_variable("x")->ref() = double(x.at(i));
+            sum_chi += std::pow((y.at(i) - expression.value()) / sigma_y.at(i), 2);
         }
     }
     else
     {
         for (int i = 0; i < x_size; i++)
         {
-            symbol_table.get_variable("x")->ref() = double(x[i]);
-            sum_chi += std::pow((y[i] - expression.value()), 2) / (std::pow(sigma_y[i],2) + std::pow(dfdx(i) * sigma_x[i], 2));
+            symbol_table.get_variable("x")->ref() = double(x.at(i));
+            sum_chi += std::pow((y.at(i) - expression.value()), 2) / (std::pow(sigma_y.at(i),2) + std::pow(dfdx(i) * sigma_x.at(i), 2));
         }
     }
 
@@ -210,7 +230,7 @@ double Interpolator::yFunction(std::vector<double> par, double x_i) {
 }
 
 
-//cerco il valore di x[i] in funzione di y[i] con bisezione anziché calcolare la funzione inversa che mi è impossibile in generale
+//cerco il valore di x[i] in funzione di y[i] con bisezione anzichï¿½ calcolare la funzione inversa che mi ï¿½ impossibile in generale
 double Interpolator::xFunction(std::vector<double> par, int i) {
     symbol_table.get_variable("a")->ref() = double(par[0]);
     symbol_table.get_variable("b")->ref() = double(par[1]);
@@ -223,7 +243,7 @@ double Interpolator::xFunction(std::vector<double> par, int i) {
     // Definizione della lambda function (con 'this' cattura correttaente le variabili private della classe)
     auto f = [this, i](double x) -> double {
         symbol_table.get_variable("x")->ref() = x;
-        return y[i] - expression.value(); // ora 'i' è catturato
+        return y[i] - expression.value(); // ora 'i' ï¿½ catturato
     };
 
     static double min_x = *min_element(x.begin(), x.end());
@@ -246,7 +266,7 @@ double Interpolator::xFunction(std::vector<double> par, int i) {
         c = (a + b) / 2; // Calcolo del punto medio
         double fc = f(c);
 
-        // Controllo se il risultato è sufficientemente vicino a 0 o se l'intervallo è piccolo
+        // Controllo se il risultato ï¿½ sufficientemente vicino a 0 o se l'intervallo ï¿½ piccolo
         if (std::fabs(fc) < tollerance || std::fabs(b - a) < tollerance) {
             return c;
         }
@@ -260,7 +280,7 @@ double Interpolator::xFunction(std::vector<double> par, int i) {
         }
     }
 
-    // Se il numero massimo di iterazioni è stato raggiunto
+    // Se il numero massimo di iterazioni ï¿½ stato raggiunto
     throw std::runtime_error("Error in 'xFunction': Maximum number of iterations reached without convergence.");
 }
 
